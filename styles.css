@@ -1,0 +1,698 @@
+/* Game Over Pop1 War Team Calendar - Styles */
+
+:root {
+    --bg-dark: #0a0a0f;
+    --bg-card: #12121a;
+    --bg-card-hover: #1a1a25;
+    --cyan: #00f0ff;
+    --magenta: #ff00ff;
+    --purple: #8b00ff;
+    --text-primary: #ffffff;
+    --text-secondary: #a0a0b0;
+    --success: #00ff88;
+    --warning: #ffaa00;
+    --danger: #ff4444;
+    --border: #2a2a3a;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header */
+.header {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    padding: 20px 0;
+    border-bottom: 2px solid var(--cyan);
+    margin-bottom: 20px;
+}
+
+.logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+.header-text h1 {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 2.5rem;
+    font-weight: 900;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.subtitle {
+    font-size: 1rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Player Select Bar */
+.player-select-bar {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 15px 20px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.player-select-bar label {
+    font-weight: 500;
+    color: var(--cyan);
+}
+
+.player-select-bar select {
+    flex: 1;
+    min-width: 200px;
+    padding: 10px 15px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.player-select-bar select:focus {
+    outline: none;
+    border-color: var(--cyan);
+}
+
+.player-preference {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 15px;
+    background: var(--bg-dark);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+}
+
+.player-preference label {
+    color: var(--magenta);
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.player-preference select {
+    flex: 0;
+    min-width: 150px;
+}
+
+/* Buttons */
+.btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s;
+    font-size: 0.9rem;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    color: var(--bg-dark);
+}
+
+.btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(0, 240, 255, 0.4);
+}
+
+.btn-manager {
+    background: transparent;
+    border: 1px solid var(--magenta);
+    color: var(--magenta);
+}
+
+.btn-manager:hover, .btn-manager.active {
+    background: var(--magenta);
+    color: var(--bg-dark);
+}
+
+.btn-success {
+    background: var(--success);
+    color: var(--bg-dark);
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: var(--bg-dark);
+}
+
+.btn-danger {
+    background: var(--danger);
+    color: white;
+}
+
+.btn-small {
+    padding: 6px 12px;
+    font-size: 0.8rem;
+}
+
+/* Tabs */
+.tabs {
+    display: flex;
+    gap: 5px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.tab {
+    padding: 12px 24px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 5px 5px 0 0;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.tab:hover {
+    background: var(--bg-card-hover);
+    color: var(--text-primary);
+}
+
+.tab.active {
+    background: var(--bg-card-hover);
+    border-bottom-color: var(--bg-card-hover);
+    color: var(--cyan);
+    border-top-color: var(--cyan);
+}
+
+.manager-only {
+    display: none;
+}
+
+body.manager-mode .manager-only {
+    display: flex;
+}
+
+body.manager-mode .tab.manager-only {
+    display: block;
+}
+
+/* Tab Content */
+.tab-content {
+    display: none;
+    background: var(--bg-card);
+    padding: 25px;
+    border-radius: 0 10px 10px 10px;
+    border: 1px solid var(--border);
+}
+
+.tab-content.active {
+    display: block;
+}
+
+.tab-content h2 {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--cyan);
+    margin-bottom: 20px;
+}
+
+.timezone-note {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 20px;
+}
+
+/* Games List */
+.games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.game-card {
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: all 0.3s;
+}
+
+.game-card:hover {
+    border-color: var(--cyan);
+    box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
+}
+
+.game-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.game-date {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.1rem;
+    color: var(--cyan);
+}
+
+.game-time {
+    color: var(--magenta);
+    font-weight: 500;
+}
+
+.game-opponent {
+    font-size: 1.2rem;
+    font-weight: 500;
+}
+
+.game-opponent span {
+    color: var(--text-secondary);
+    font-weight: 400;
+}
+
+.game-notes {
+    color: var(--text-secondary);
+    font-style: italic;
+    margin: 10px 0;
+}
+
+.game-status {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.status-need-players {
+    background: rgba(255, 170, 0, 0.2);
+    color: var(--warning);
+    border: 1px solid var(--warning);
+}
+
+.status-ready {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--success);
+    border: 1px solid var(--success);
+}
+
+.availability-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+
+.availability-section h4 {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-bottom: 10px;
+}
+
+.availability-buttons {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.available-players, .selected-roster {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.player-chip {
+    padding: 5px 12px;
+    background: rgba(0, 240, 255, 0.1);
+    border: 1px solid var(--cyan);
+    border-radius: 20px;
+    font-size: 0.85rem;
+    color: var(--cyan);
+}
+
+.player-chip.roster {
+    background: rgba(0, 255, 136, 0.1);
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.player-chip.sub {
+    background: rgba(255, 170, 0, 0.1);
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+.no-games {
+    text-align: center;
+    padding: 40px;
+    color: var(--text-secondary);
+}
+
+/* Roster Section */
+.roster-section {
+    margin-bottom: 30px;
+}
+
+.roster-section h3 {
+    color: var(--magenta);
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+}
+
+.roster-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+}
+
+.roster-member {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 15px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.roster-member:hover {
+    border-color: var(--cyan);
+}
+
+.member-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--success);
+}
+
+.roster-member.sub .member-indicator {
+    background: var(--warning);
+}
+
+.member-name {
+    flex: 1;
+}
+
+.member-tag {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    padding: 2px 8px;
+    background: var(--bg-card);
+    border-radius: 10px;
+}
+
+/* Manage Section */
+.manage-section {
+    margin-bottom: 30px;
+}
+
+.manage-section h3 {
+    color: var(--magenta);
+    margin-bottom: 15px;
+}
+
+.create-game-form {
+    display: grid;
+    gap: 15px;
+    max-width: 500px;
+}
+
+.form-row {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.form-row label {
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+.form-row input {
+    padding: 12px 15px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.form-row input:focus {
+    outline: none;
+    border-color: var(--cyan);
+}
+
+.manage-games-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.manage-game-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.manage-game-info {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.manage-game-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* Modals */
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+}
+
+.modal.active {
+    display: flex;
+}
+
+.modal-content {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 30px;
+    max-width: 500px;
+    width: 100%;
+    position: relative;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.modal-large {
+    max-width: 800px;
+}
+
+.close-modal {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: color 0.3s;
+}
+
+.close-modal:hover {
+    color: var(--danger);
+}
+
+.modal-content h2 {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--cyan);
+    margin-bottom: 20px;
+}
+
+/* Roster Selection */
+.roster-selection {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 600px) {
+    .roster-selection {
+        grid-template-columns: 1fr;
+    }
+}
+
+.roster-pool {
+    background: var(--bg-dark);
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.roster-pool h4 {
+    color: var(--text-secondary);
+    margin-bottom: 10px;
+    font-size: 0.9rem;
+}
+
+.player-select-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.player-select-item:hover {
+    border-color: var(--cyan);
+    background: var(--bg-card-hover);
+}
+
+.player-select-item.selected {
+    border-color: var(--success);
+    background: rgba(0, 255, 136, 0.1);
+}
+
+.player-select-item.unavailable {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.player-checkbox {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--cyan);
+}
+
+.save-roster-btn {
+    margin-top: 20px;
+    width: 100%;
+}
+
+.roster-count {
+    text-align: center;
+    margin-top: 10px;
+    color: var(--text-secondary);
+}
+
+.roster-count.full {
+    color: var(--success);
+}
+
+.roster-count.over {
+    color: var(--danger);
+}
+
+/* Footer */
+.footer {
+    text-align: center;
+    padding: 30px;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    border-top: 1px solid var(--border);
+    margin-top: 40px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .header {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .header-text h1 {
+        font-size: 1.8rem;
+    }
+
+    .player-select-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .player-select-bar select {
+        min-width: 100%;
+    }
+
+    .tabs {
+        flex-direction: column;
+    }
+
+    .tab {
+        border-radius: 5px;
+    }
+
+    .game-header {
+        flex-direction: column;
+    }
+}
+
+/* Availability Status */
+.your-status {
+    padding: 10px 15px;
+    background: var(--bg-card);
+    border-radius: 5px;
+    margin-bottom: 10px;
+}
+
+.your-status.confirmed {
+    border-left: 3px solid var(--success);
+}
+
+.your-status.declined {
+    border-left: 3px solid var(--danger);
+}
+
+.your-status.pending {
+    border-left: 3px solid var(--warning);
+}
