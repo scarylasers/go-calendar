@@ -696,3 +696,286 @@ body.manager-mode .tab.manager-only {
 .your-status.pending {
     border-left: 3px solid var(--warning);
 }
+
+/* Auth Bar */
+.auth-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    padding: 15px 20px;
+    background: var(--bg-card);
+    border-radius: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+#loginSection {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.login-hint {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Discord Button */
+.btn-discord {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: #5865F2;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-decoration: none;
+    transition: all 0.3s;
+}
+
+.btn-discord:hover {
+    background: #4752c4;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 20px rgba(88, 101, 242, 0.4);
+}
+
+.btn-discord svg {
+    flex-shrink: 0;
+}
+
+/* User Info Section */
+#userSection {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    border: 2px solid var(--cyan);
+    object-fit: cover;
+}
+
+.user-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.manager-badge {
+    padding: 4px 10px;
+    background: linear-gradient(135deg, var(--magenta), var(--purple));
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    border-radius: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.player-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 15px;
+    background: var(--bg-dark);
+    border-radius: 5px;
+    border: 1px solid var(--border);
+}
+
+.player-info span {
+    color: var(--cyan);
+    font-weight: 500;
+}
+
+/* Help Section */
+.help-toggle {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 25px;
+}
+
+.help-btn {
+    padding: 10px 20px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.3s;
+    font-weight: 500;
+}
+
+.help-btn:hover {
+    border-color: var(--cyan);
+    color: var(--text-primary);
+}
+
+.help-btn.active {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: var(--bg-dark);
+}
+
+.help-guide {
+    background: var(--bg-dark);
+    padding: 25px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.help-guide h3 {
+    color: var(--cyan);
+    margin-bottom: 20px;
+    font-family: 'Orbitron', sans-serif;
+}
+
+.help-guide h4 {
+    color: var(--magenta);
+    margin: 25px 0 15px;
+}
+
+.help-note {
+    color: var(--warning);
+    font-size: 0.9rem;
+    padding: 10px 15px;
+    background: rgba(255, 170, 0, 0.1);
+    border-left: 3px solid var(--warning);
+    border-radius: 0 5px 5px 0;
+    margin-bottom: 20px;
+}
+
+.help-steps {
+    list-style: none;
+    counter-reset: step-counter;
+}
+
+.help-steps li {
+    counter-increment: step-counter;
+    position: relative;
+    padding-left: 50px;
+    margin-bottom: 20px;
+}
+
+.help-steps li::before {
+    content: counter(step-counter);
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--cyan), var(--purple));
+    color: var(--bg-dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.help-steps li strong {
+    display: block;
+    color: var(--text-primary);
+    margin-bottom: 5px;
+    font-size: 1.05rem;
+}
+
+.help-steps li p {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+.help-tips {
+    list-style: none;
+    padding-left: 0;
+}
+
+.help-tips li {
+    padding: 10px 15px;
+    padding-left: 30px;
+    position: relative;
+    color: var(--text-secondary);
+    margin-bottom: 8px;
+    background: var(--bg-card);
+    border-radius: 5px;
+}
+
+.help-tips li::before {
+    content: '→';
+    position: absolute;
+    left: 12px;
+    color: var(--cyan);
+}
+
+/* Link Account Modal */
+#linkModal .modal-content {
+    text-align: center;
+}
+
+#linkModal h2 {
+    margin-bottom: 10px;
+}
+
+#linkModal .form-row {
+    text-align: left;
+    margin-top: 20px;
+}
+
+#linkPlayerSelect {
+    width: 100%;
+    padding: 12px 15px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+#linkPlayerSelect:focus {
+    outline: none;
+    border-color: var(--cyan);
+}
+
+/* Responsive Auth Bar */
+@media (max-width: 768px) {
+    .auth-bar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #loginSection {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    #userSection {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    .user-info {
+        justify-content: center;
+    }
+
+    .help-toggle {
+        flex-direction: column;
+    }
+
+    .help-steps li {
+        padding-left: 45px;
+    }
+}

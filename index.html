@@ -18,27 +18,46 @@
             </div>
         </header>
 
-        <!-- Player Selection (for availability) -->
-        <div class="player-select-bar">
-            <label for="currentPlayer">You are:</label>
-            <select id="currentPlayer">
-                <option value="">-- Select Your Name --</option>
-            </select>
-            <div id="playerPreference" class="player-preference" style="display: none;">
-                <label>My Role:</label>
-                <select id="rolePreference">
-                    <option value="starter">Starter (Full Season)</option>
-                    <option value="sub">Prefer to Sub</option>
-                </select>
+        <!-- Auth Bar -->
+        <div class="auth-bar">
+            <!-- Not logged in -->
+            <div id="loginSection">
+                <a href="/auth/discord" class="btn btn-discord">
+                    <svg width="20" height="20" viewBox="0 0 71 55" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M60.1045 4.8978C55.5792 2.8214 50.7265 1.2916 45.6527 0.41542C45.5603 0.39851 45.468 0.440769 45.4204 0.525289C44.7963 1.6353 44.105 3.0834 43.6209 4.2216C38.1637 3.4046 32.7345 3.4046 27.3892 4.2216C26.905 3.0581 26.1886 1.6353 25.5617 0.525289C25.5141 0.443589 25.4218 0.40133 25.3294 0.41542C20.2584 1.2888 15.4057 2.8186 10.8776 4.8978C10.8384 4.9147 10.8048 4.9429 10.7825 4.9795C1.57795 18.7309 -0.943561 32.1443 0.293408 45.3914C0.299005 45.4562 0.335386 45.5182 0.385761 45.5576C6.45866 50.0174 12.3413 52.7249 18.1147 54.5195C18.2071 54.5477 18.305 54.5139 18.3638 54.4378C19.7295 52.5728 20.9469 50.6063 21.9907 48.5383C22.0523 48.4172 21.9935 48.2735 21.8676 48.2256C19.9366 47.4931 18.0979 46.6 16.3292 45.5858C16.1893 45.5041 16.1781 45.304 16.3068 45.2082C16.679 44.9293 17.0513 44.6391 17.4067 44.3461C17.471 44.2926 17.5606 44.2813 17.6362 44.3151C29.2558 49.6202 41.8354 49.6202 53.3179 44.3151C53.3## truncated for brevity
+                    </svg>
+                    Login with Discord
+                </a>
+                <span class="login-hint">Sign in to mark your availability</span>
             </div>
-            <button id="managerToggle" class="btn btn-manager">Manager Mode</button>
+
+            <!-- Logged in -->
+            <div id="userSection" style="display: none;">
+                <div class="user-info">
+                    <img id="userAvatar" class="user-avatar" src="" alt="">
+                    <span id="userName" class="user-name"></span>
+                    <span id="managerBadge" class="manager-badge" style="display: none;">Manager</span>
+                </div>
+                <div id="playerInfo" class="player-info">
+                    <span id="linkedPlayer"></span>
+                </div>
+                <div id="playerPreference" class="player-preference" style="display: none;">
+                    <label>My Role:</label>
+                    <select id="rolePreference">
+                        <option value="starter">Starter (Full Season)</option>
+                        <option value="sub">Prefer to Sub</option>
+                    </select>
+                </div>
+                <button id="logoutBtn" class="btn btn-small">Logout</button>
+            </div>
         </div>
 
         <!-- Tabs -->
         <nav class="tabs">
             <button class="tab active" data-tab="calendar">Upcoming Games</button>
             <button class="tab" data-tab="roster">Team Roster</button>
-            <button class="tab manager-only" data-tab="manage">Manage Games</button>
+            <button class="tab" data-tab="help">Help</button>
+            <button class="tab manager-only" data-tab="manage" style="display: none;">Manage Games</button>
         </nav>
 
         <!-- Calendar Tab -->
@@ -66,6 +85,77 @@
                 <div id="subRoster" class="roster-grid">
                     <!-- Subs here -->
                 </div>
+            </div>
+        </section>
+
+        <!-- Help Tab -->
+        <section id="help" class="tab-content">
+            <h2>How to Use This App</h2>
+
+            <div class="help-toggle">
+                <button class="help-btn active" data-view="player">For Players</button>
+                <button class="help-btn" data-view="manager">For Managers</button>
+            </div>
+
+            <div id="playerGuide" class="help-guide">
+                <h3>Player Guide</h3>
+                <ol class="help-steps">
+                    <li>
+                        <strong>Login with Discord</strong>
+                        <p>Click the "Login with Discord" button to connect your Discord account. This lets the app know who you are.</p>
+                    </li>
+                    <li>
+                        <strong>Link Your Profile</strong>
+                        <p>The first time you log in, you'll be asked to select your player name from the roster. This links your Discord to your team profile.</p>
+                    </li>
+                    <li>
+                        <strong>Mark Your Availability</strong>
+                        <p>For each upcoming game, click "I Can Play" if you're available, or "Can't Make It" if you're not. Managers use this to build rosters.</p>
+                    </li>
+                    <li>
+                        <strong>Get Reminders</strong>
+                        <p>If you're added to a game roster, you'll receive a Discord DM reminder 24 hours before the game.</p>
+                    </li>
+                    <li>
+                        <strong>Set Your Preference</strong>
+                        <p>Choose whether you prefer to be a "Starter" (play every game) or "Sub" (fill in when needed). This helps managers build balanced rosters.</p>
+                    </li>
+                </ol>
+            </div>
+
+            <div id="managerGuide" class="help-guide" style="display: none;">
+                <h3>Manager Guide</h3>
+                <p class="help-note">You need the "Manager" role in Discord to access manager features.</p>
+                <ol class="help-steps">
+                    <li>
+                        <strong>Create Games</strong>
+                        <p>Go to the "Manage Games" tab. Fill in the date, time, and opponent team name, then click "Create Game".</p>
+                    </li>
+                    <li>
+                        <strong>View Availability</strong>
+                        <p>On each game card, you'll see who has marked themselves as available or unavailable.</p>
+                    </li>
+                    <li>
+                        <strong>Set the Roster</strong>
+                        <p>Click "Select Roster" on a game to choose the 10 players who will play. Prioritize players who marked themselves as available.</p>
+                    </li>
+                    <li>
+                        <strong>Post to Discord</strong>
+                        <p>Once the roster is set, click "Post to Discord" to announce the game in your server channel.</p>
+                    </li>
+                    <li>
+                        <strong>Configure Webhook</strong>
+                        <p>In the Manage Games tab, set your Discord webhook URL to enable posting announcements.</p>
+                    </li>
+                </ol>
+
+                <h4>Tips</h4>
+                <ul class="help-tips">
+                    <li>Players marked with "Starter" preference want to play every game</li>
+                    <li>Players marked with "Sub" prefer to fill in when starters can't make it</li>
+                    <li>Rostered players automatically get DM reminders 24h before games</li>
+                    <li>The [EU] tag shows players in European timezone</li>
+                </ul>
             </div>
         </section>
 
@@ -136,6 +226,25 @@
                 <div id="rosterModalContent">
                     <!-- Dynamic content -->
                 </div>
+            </div>
+        </div>
+
+        <!-- Link Account Modal -->
+        <div id="linkModal" class="modal">
+            <div class="modal-content">
+                <h2>Link Your Account</h2>
+                <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                    Welcome! Please select your player name to link your Discord account.
+                </p>
+                <div class="form-row">
+                    <label for="linkPlayerSelect">I am:</label>
+                    <select id="linkPlayerSelect">
+                        <option value="">-- Select Your Name --</option>
+                    </select>
+                </div>
+                <button id="linkPlayerBtn" class="btn btn-primary" style="margin-top: 15px;">
+                    Link Account
+                </button>
             </div>
         </div>
     </div>
