@@ -8,7 +8,7 @@ services:
     name: go-pop1-calendar
     runtime: go
     plan: free
-    buildCommand: go build -o server .
+    buildCommand: go mod tidy && go build -o server .
     startCommand: ./server
     envVars:
       - key: DATABASE_URL
