@@ -614,6 +614,20 @@ func writeError(w http.ResponseWriter, status int, message string) {
 	writeJSON(w, status, map[string]string{"error": message})
 }
 
+func getUserAvatar(user *User) string {
+	if user != nil {
+		return user.Avatar
+	}
+	return ""
+}
+
+func getUserDisplayName(user *User) string {
+	if user != nil {
+		return user.DisplayName
+	}
+	return ""
+}
+
 // ==================== DATA FUNCTIONS ====================
 
 func getAllGames() ([]Game, error) {
@@ -872,8 +886,8 @@ func handleAuthMe(w http.ResponseWriter, r *http.Request) {
 		"username":      session.Username,
 		"isManager":     session.IsManager,
 		"playerId":      session.PlayerID,
-		"avatar":        func() string { if user != nil { return user.Avatar } return "" }(),
-		"displayName":   func() string { if user != nil { return user.DisplayName } return "" }(),
+		"avatar":        getUserAvatar(user),
+		"displayName":   getUserDisplayName(user),
 	})
 }
 
