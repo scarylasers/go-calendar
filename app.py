@@ -1,54 +1,248 @@
 """
 Game Over Pop1 War Team Calendar - Flask Backend
-For PythonAnywhere deployment
+For Render deployment with PostgreSQL
 """
 
 from flask import Flask, jsonify, request, send_from_directory
-import json
 import os
 from datetime import datetime
 import random
 import string
 import requests
+import json
+
+# Try to import psycopg2, fall back to JSON if not available (local dev)
+try:
+    import psycopg2
+    from psycopg2.extras import RealDictCursor
+    HAS_POSTGRES = True
+except ImportError:
+    HAS_POSTGRES = False
 
 app = Flask(__name__, static_folder='.', static_url_path='')
 
-# Data file path - PythonAnywhere has persistent storage
-DATA_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'data.json')
+# Database URL from environment (Render provides this)
+DATABASE_URL = os.environ.get('DATABASE_URL')
 
-# ==================== DATA HELPERS ====================
+# ==================== DATABASE HELPERS ====================
 
-def init_data_file():
-    """Create data file if it doesn't exist"""
-    if not os.path.exists(DATA_FILE):
-        initial_data = {
-            'games': [],
-            'playerPreferences': {},
-            'discordWebhook': ''
-        }
-        save_data(initial_data)
+def get_db_connection():
+    """Get PostgreSQL connection"""
+    if not DATABASE_URL or not HAS_POSTGRES:
+        return None
+    conn = psycopg2.connect(DATABASE_URL)
+    return conn
 
-def load_data():
-    """Load data from JSON file"""
-    try:
-        with open(DATA_FILE, 'r') as f:
-            return json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {'games': [], 'playerPreferences': {}, 'discordWebhook': ''}
+def init_db():
+    """Initialize database tables"""
+    conn = get_db_connection()
+    if not conn:
+        return
 
-def save_data(data):
-    """Save data to JSON file"""
-    with open(DATA_FILE, 'w') as f:
-        json.dump(data, f, indent=2)
+    cur = conn.cursor()
 
-def generate_game_id():
-    """Generate unique game ID"""
-    timestamp = int(datetime.now().timestamp() * 1000)
-    random_str = ''.join(random.choices(string.ascii_lowercase + string.digits, k=9))
-    return f'game_{timestamp}_{random_str}'
+    # Games table
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS games (
+            id TEXT PRIMARY KEY,
+            date TEXT NOT NULL,
+            time TEXT NOT NULL,
+            opponent TEXT NOT NULL,
+            notes TEXT DEFAULT '',
+            available TEXT DEFAULT '[]',
+            unavailable TEXT DEFAULT '[]',
+            roster TEXT DEFAULT '[]',
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )
+    ''')
+
+    # Player preferences table
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS player_preferences (
+            player_id TEXT PRIMARY KEY,
+            preference TEXT DEFAULT 'starter'
+        )
+    ''')
+
+    # Settings table (for webhook, etc.)
+    cur.execute('''
+        CREATE TABLE IF NOT EXISTS settings (
+            key TEXT PRIMARY KEY,
+            value TEXT
+        )
+    ''')
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # Initialize on startup
-init_data_file()
+if DATABASE_URL and HAS_POSTGRES:
+    try:
+        init_db()
+        print("Database initialized successfully")
+    except Exception as e:
+        print(f"Database init error: {e}")
+
+# ==================== DATA FUNCTIONS ====================
+
+def get_all_games():
+    """Get all games from database"""
+    conn = get_db_connection()
+    if not conn:
+        return []
+
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT * FROM games ORDER BY date, time')
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    games = []
+    for row in rows:
+        game = dict(row)
+        game['available'] = json.loads(game['available'] or '[]')
+        game['unavailable'] = json.loads(game['unavailable'] or '[]')
+        game['roster'] = json.loads(game['roster'] or '[]')
+        games.append(game)
+
+    return games
+
+def get_game_by_id(game_id):
+    """Get a single game by ID"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT * FROM games WHERE id = %s', (game_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if row:
+        game = dict(row)
+        game['available'] = json.loads(game['available'] or '[]')
+        game['unavailable'] = json.loads(game['unavailable'] or '[]')
+        game['roster'] = json.loads(game['roster'] or '[]')
+        return game
+    return None
+
+def create_game_db(game_data):
+    """Create a new game"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    game_id = 'game_' + str(int(datetime.now().timestamp() * 1000)) + '_' + ''.join(random.choices(string.ascii_lowercase + string.digits, k=9))
+
+    cur = conn.cursor()
+    cur.execute('''
+        INSERT INTO games (id, date, time, opponent, notes, available, unavailable, roster)
+        VALUES (%s, %s, %s, %s, %s, '[]', '[]', '[]')
+    ''', (game_id, game_data['date'], game_data['time'], game_data['opponent'], game_data.get('notes', '')))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return get_game_by_id(game_id)
+
+def update_game_db(game_id, updates):
+    """Update a game"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    cur = conn.cursor()
+
+    for key, value in updates.items():
+        if key in ['available', 'unavailable', 'roster']:
+            value = json.dumps(value)
+        cur.execute(f'UPDATE games SET {key} = %s WHERE id = %s', (value, game_id))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return get_game_by_id(game_id)
+
+def delete_game_db(game_id):
+    """Delete a game"""
+    conn = get_db_connection()
+    if not conn:
+        return False
+
+    cur = conn.cursor()
+    cur.execute('DELETE FROM games WHERE id = %s', (game_id,))
+    conn.commit()
+    cur.close()
+    conn.close()
+    return True
+
+def get_all_preferences():
+    """Get all player preferences"""
+    conn = get_db_connection()
+    if not conn:
+        return {}
+
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    cur.execute('SELECT * FROM player_preferences')
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
+
+    return {row['player_id']: row['preference'] for row in rows}
+
+def set_preference_db(player_id, preference):
+    """Set a player's preference"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    cur = conn.cursor()
+    cur.execute('''
+        INSERT INTO player_preferences (player_id, preference)
+        VALUES (%s, %s)
+        ON CONFLICT (player_id) DO UPDATE SET preference = %s
+    ''', (player_id, preference, preference))
+
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    return {'player_id': player_id, 'preference': preference}
+
+def get_setting(key):
+    """Get a setting value"""
+    conn = get_db_connection()
+    if not conn:
+        return None
+
+    cur = conn.cursor()
+    cur.execute('SELECT value FROM settings WHERE key = %s', (key,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return row[0] if row else None
+
+def set_setting(key, value):
+    """Set a setting value"""
+    conn = get_db_connection()
+    if not conn:
+        return
+
+    cur = conn.cursor()
+    cur.execute('''
+        INSERT INTO settings (key, value)
+        VALUES (%s, %s)
+        ON CONFLICT (key) DO UPDATE SET value = %s
+    ''', (key, value, value))
+
+    conn.commit()
+    cur.close()
+    conn.close()
 
 # ==================== MEMBER DATA ====================
 
@@ -122,20 +316,22 @@ def serve_static(path):
 @app.route('/api/data', methods=['GET'])
 def get_all_data():
     """Get all data (games + preferences)"""
-    return jsonify(load_data())
+    return jsonify({
+        'games': get_all_games(),
+        'playerPreferences': get_all_preferences(),
+        'discordWebhook': ''  # Don't expose webhook to frontend
+    })
 
 # ==================== GAMES ====================
 
 @app.route('/api/games', methods=['GET'])
 def get_games():
     """Get all games"""
-    data = load_data()
-    return jsonify(data.get('games', []))
+    return jsonify(get_all_games())
 
 @app.route('/api/games', methods=['POST'])
 def create_game():
     """Create a new game"""
-    data = load_data()
     body = request.json
 
     date = body.get('date')
@@ -146,45 +342,28 @@ def create_game():
     if not all([date, time, opponent]):
         return jsonify({'error': 'Missing required fields'}), 400
 
-    game = {
-        'id': generate_game_id(),
+    game = create_game_db({
         'date': date,
         'time': time,
         'opponent': opponent,
-        'notes': notes,
-        'available': [],
-        'unavailable': [],
-        'roster': [],
-        'createdAt': datetime.now().isoformat()
-    }
+        'notes': notes
+    })
 
-    data['games'].append(game)
-    save_data(data)
-
-    return jsonify(game), 201
+    if game:
+        return jsonify(game), 201
+    return jsonify({'error': 'Failed to create game'}), 500
 
 @app.route('/api/games/<game_id>', methods=['DELETE'])
 def delete_game(game_id):
     """Delete a game"""
-    data = load_data()
-
-    game_index = next((i for i, g in enumerate(data['games']) if g['id'] == game_id), None)
-
-    if game_index is None:
-        return jsonify({'error': 'Game not found'}), 404
-
-    data['games'].pop(game_index)
-    save_data(data)
-
-    return jsonify({'success': True})
+    if delete_game_db(game_id):
+        return jsonify({'success': True})
+    return jsonify({'error': 'Game not found'}), 404
 
 @app.route('/api/games/<game_id>/roster', methods=['PUT'])
 def update_roster(game_id):
     """Update game roster"""
-    data = load_data()
-
-    game = next((g for g in data['games'] if g['id'] == game_id), None)
-
+    game = get_game_by_id(game_id)
     if not game:
         return jsonify({'error': 'Game not found'}), 404
 
@@ -194,18 +373,13 @@ def update_roster(game_id):
     if not isinstance(roster, list):
         return jsonify({'error': 'Roster must be an array'}), 400
 
-    game['roster'] = roster
-    save_data(data)
-
-    return jsonify(game)
+    updated = update_game_db(game_id, {'roster': roster})
+    return jsonify(updated)
 
 @app.route('/api/games/<game_id>/availability', methods=['POST'])
 def set_availability(game_id):
     """Set player availability for a game"""
-    data = load_data()
-
-    game = next((g for g in data['games'] if g['id'] == game_id), None)
-
+    game = get_game_by_id(game_id)
     if not game:
         return jsonify({'error': 'Game not found'}), 404
 
@@ -216,58 +390,42 @@ def set_availability(game_id):
     if not player_id:
         return jsonify({'error': 'Player ID required'}), 400
 
-    # Initialize arrays if needed
-    if 'available' not in game:
-        game['available'] = []
-    if 'unavailable' not in game:
-        game['unavailable'] = []
+    available = [p for p in game['available'] if p != player_id]
+    unavailable = [p for p in game['unavailable'] if p != player_id]
 
-    # Remove from both lists first
-    game['available'] = [p for p in game['available'] if p != player_id]
-    game['unavailable'] = [p for p in game['unavailable'] if p != player_id]
-
-    # Add to appropriate list
     if is_available:
-        game['available'].append(player_id)
+        available.append(player_id)
     else:
-        game['unavailable'].append(player_id)
+        unavailable.append(player_id)
 
-    save_data(data)
-    return jsonify(game)
+    updated = update_game_db(game_id, {'available': available, 'unavailable': unavailable})
+    return jsonify(updated)
 
 # ==================== PLAYER PREFERENCES ====================
 
 @app.route('/api/preferences', methods=['GET'])
 def get_preferences():
     """Get all player preferences"""
-    data = load_data()
-    return jsonify(data.get('playerPreferences', {}))
+    return jsonify(get_all_preferences())
 
 @app.route('/api/preferences/<player_id>', methods=['PUT'])
 def set_preference(player_id):
     """Set a player's preference"""
-    data = load_data()
     body = request.json
     preference = body.get('preference')
 
     if preference not in ['starter', 'sub']:
         return jsonify({'error': 'Invalid preference. Must be "starter" or "sub"'}), 400
 
-    if 'playerPreferences' not in data:
-        data['playerPreferences'] = {}
-
-    data['playerPreferences'][player_id] = preference
-    save_data(data)
-
-    return jsonify({'playerId': player_id, 'preference': preference})
+    result = set_preference_db(player_id, preference)
+    return jsonify(result)
 
 # ==================== DISCORD WEBHOOK ====================
 
 @app.route('/api/webhook', methods=['GET'])
 def get_webhook():
     """Get webhook status (masked for security)"""
-    data = load_data()
-    webhook = data.get('discordWebhook', '')
+    webhook = get_setting('discord_webhook') or ''
     return jsonify({
         'configured': bool(webhook),
         'preview': ('****' + webhook[-10:]) if webhook else None
@@ -276,32 +434,25 @@ def get_webhook():
 @app.route('/api/webhook', methods=['PUT'])
 def set_webhook():
     """Set webhook URL"""
-    data = load_data()
     body = request.json
     webhook = body.get('webhook', '')
-
-    data['discordWebhook'] = webhook
-    save_data(data)
-
+    set_setting('discord_webhook', webhook)
     return jsonify({'success': True})
 
 @app.route('/api/discord/post/<game_id>', methods=['POST'])
 def post_to_discord(game_id):
     """Post game announcement to Discord"""
-    data = load_data()
-
-    webhook = data.get('discordWebhook')
+    webhook = get_setting('discord_webhook')
     if not webhook:
         return jsonify({'error': 'Discord webhook not configured'}), 400
 
-    game = next((g for g in data['games'] if g['id'] == game_id), None)
+    game = get_game_by_id(game_id)
     if not game:
         return jsonify({'error': 'Game not found'}), 404
 
     # Format date and time
-    from datetime import datetime as dt
     try:
-        date_obj = dt.strptime(game['date'], '%Y-%m-%d')
+        date_obj = datetime.strptime(game['date'], '%Y-%m-%d')
         formatted_date = date_obj.strftime('%A, %b %d, %Y')
     except:
         formatted_date = game['date']
@@ -357,4 +508,5 @@ def post_to_discord(game_id):
 # ==================== RUN SERVER ====================
 
 if __name__ == '__main__':
-    app.run(debug=True, port=3000)
+    port = int(os.environ.get('PORT', 3000))
+    app.run(host='0.0.0.0', port=port, debug=False)
