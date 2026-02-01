@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: go-pop1-calendar
-    runtime: node
-    buildCommand: npm install
-    startCommand: npm start
-    envVars:
-      - key: NODE_ENV
-        value: production

@@ -1,4 +1,20 @@
-node_modules/
+# Sensitive data - NEVER commit
+data.json
 .env
 *.log
-data.json
+
+# Node (not used, but just in case)
+node_modules/
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.Python
+venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp

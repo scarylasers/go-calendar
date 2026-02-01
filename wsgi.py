@@ -1,17 +1,15 @@
 # WSGI configuration for PythonAnywhere
-# Update the path below to match your PythonAnywhere username
+# NOTE: This file is a TEMPLATE - edit the WSGI file directly in PythonAnywhere's Web tab
+# Do not put your actual username here in the git repo
 
 import sys
 import os
 
-# Add your project directory to the sys.path
-# Change 'yourusername' to your actual PythonAnywhere username
-project_home = '/home/yourusername/go-calendar'
+# CHANGE 'YOURUSERNAME' to your PythonAnywhere username
+project_home = '/home/YOURUSERNAME/go-calendar'
 if project_home not in sys.path:
     sys.path.insert(0, project_home)
 
-# Set the working directory
 os.chdir(project_home)
 
-# Import the Flask app
 from app import app as application
