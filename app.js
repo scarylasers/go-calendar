@@ -304,9 +304,10 @@ async function setPlayerPreferenceAPI(playerId, preference) {
     }
 }
 
-async function postToDiscordAPI(gameId) {
+async function postToDiscordAPI(gameId, mentionPlayers = false) {
     try {
-        const response = await fetch(`${API_BASE}/discord/post/${gameId}`, {
+        const url = `${API_BASE}/discord/post/${gameId}${mentionPlayers ? '?mention=true' : ''}`;
+        const response = await fetch(url, {
             method: 'POST',
             credentials: 'include'
         });
@@ -580,35 +581,18 @@ function renderGameCard(game) {
 
     return `
         <div class="game-card ${isOnRoster ? 'on-roster' : ''}">
-            <div class="game-header">
-                <div class="game-date">${formatDate(game.date)}</div>
+            <div class="game-header-centered">
+                <div class="game-datetime">
+                    <span class="game-date">${formatDate(game.date)}</span>
+                    <span class="datetime-separator">•</span>
+                    <span class="game-time">${formatTime(game.time)}</span>
+                </div>
                 <div class="game-countdown ${countdownClass}">
-                    <span class="countdown-label">Starts in:</span>
                     <span class="countdown-time ${countdownClass}">${countdown.text}</span>
                 </div>
-                <div class="game-time">${formatTime(game.time)}</div>
             </div>
-            <div class="game-mode-large">${gameMode}</div>
+            <div class="game-mode-badge">${gameMode}</div>
             <div class="game-opponent">vs ${game.opponent}</div>
-            <div class="game-meta">
-                ${game.league ? `<span class="game-league">${game.league}${game.division ? ` - ${game.division}` : ''}</span>` : ''}
-            </div>
-            ${game.notes ? `<div class="game-notes">${game.notes}</div>` : ''}
-
-            <div class="game-status">
-                <span class="status-badge ${rosterStatusClass}">Roster: ${rosterCount}/${teamSize}</span>
-                <span class="status-badge available-badge">${availableCount} Available</span>
-                ${withdrawalCount > 0 && state.isManager ? `<span class="status-badge withdrawal-badge">${withdrawalCount} Need${withdrawalCount > 1 ? '' : 's'} Sub</span>` : ''}
-            </div>
-
-            ${availabilityButtons}
-
-            ${availablePlayers ? `
-                <div class="available-section">
-                    <h4>Available Players</h4>
-                    <div class="player-chips">${availablePlayers}</div>
-                </div>
-            ` : ''}
 
             ${rosterPlayers ? `
                 <div class="final-roster-section">
@@ -624,10 +608,33 @@ function renderGameCard(game) {
                 </div>
             ` : ''}
 
+            <div class="game-meta">
+                ${game.league ? `<span class="game-league">${game.league}${game.division ? ` - ${game.division}` : ''}</span>` : ''}
+            </div>
+            ${game.notes ? `<div class="game-notes">${game.notes}</div>` : ''}
+
+            <div class="game-status">
+                <span class="status-badge ${rosterStatusClass}">Roster: ${rosterCount}/${teamSize}</span>
+                <span class="status-badge available-badge">${availableCount} Available</span>
+                ${withdrawalCount > 0 && state.isManager ? `<span class="status-badge withdrawal-badge">${withdrawalCount} Need${withdrawalCount > 1 ? '' : 's'} Sub</span>` : ''}
+            </div>
+
+            ${availabilityButtons}
+
             ${state.isManager ? `
                 <div class="manager-actions">
                     <button class="btn btn-secondary" onclick="openRosterModal('${game.id}')">Select Roster</button>
-                    <button class="btn btn-discord-small" onclick="postToDiscord('${game.id}')">Post to Discord</button>
+                    <div class="discord-post-group">
+                        <button class="btn btn-discord-small" onclick="postToDiscord('${game.id}', false)">Post to Discord</button>
+                        <button class="btn btn-discord-mention" onclick="postToDiscord('${game.id}', true)" title="Post with @mentions">@ Mention</button>
+                    </div>
+                </div>
+            ` : ''}
+
+            ${availablePlayers ? `
+                <div class="available-section">
+                    <h4>Available Players</h4>
+                    <div class="player-chips">${availablePlayers}</div>
                 </div>
             ` : ''}
         </div>
@@ -837,10 +844,10 @@ async function withdrawFromRoster(gameId) {
     }
 }
 
-async function postToDiscord(gameId) {
+async function postToDiscord(gameId, mentionPlayers = false) {
     try {
-        await postToDiscordAPI(gameId);
-        alert('Posted to Discord successfully!');
+        await postToDiscordAPI(gameId, mentionPlayers);
+        alert(mentionPlayers ? 'Posted to Discord with @mentions!' : 'Posted to Discord successfully!');
     } catch (error) {
         showError(error.message);
     }

@@ -640,6 +640,15 @@ func getMemberName(memberID string) string {
 	return memberID
 }
 
+func getDiscordIDForPlayer(playerID string) string {
+	var discordID string
+	err := db.QueryRow("SELECT discord_id FROM users WHERE player_id = $1", playerID).Scan(&discordID)
+	if err != nil {
+		return ""
+	}
+	return discordID
+}
+
 func generateGameID() string {
 	timestamp := time.Now().UnixMilli()
 	chars := "abcdefghijklmnopqrstuvwxyz0123456789"
@@ -1773,6 +1782,7 @@ func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 
 	vars := mux.Vars(r)
 	gameID := vars["id"]
+	mentionPlayers := r.URL.Query().Get("mention") == "true"
 
 	webhook, _ := getSetting("discord_webhook")
 	if webhook == "" {
@@ -1811,8 +1821,16 @@ func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var rosterNames []string
+	var mentionString string
 	for _, pid := range game.Roster {
 		rosterNames = append(rosterNames, getMemberName(pid))
+		// If mentioning, look up Discord ID for this player
+		if mentionPlayers {
+			discordID := getDiscordIDForPlayer(pid)
+			if discordID != "" {
+				mentionString += fmt.Sprintf("<@%s> ", discordID)
+			}
+		}
 	}
 
 	rosterValue := "TBD"
@@ -1845,6 +1863,11 @@ func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 	payload := map[string]interface{}{
 		"username": "Game Over Bot",
 		"embeds":   []map[string]interface{}{embed},
+	}
+
+	// Add mentions as content (outside embed so they ping)
+	if mentionPlayers && mentionString != "" {
+		payload["content"] = "📢 Roster Alert! " + mentionString
 	}
 
 	payloadBytes, _ := json.Marshal(payload)

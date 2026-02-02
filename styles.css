@@ -343,9 +343,27 @@ body.manager-mode .tab.manager-only {
     gap: 10px;
 }
 
+/* Centered header layout */
+.game-header-centered {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+.game-datetime {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 5px;
+}
+
+.datetime-separator {
+    color: var(--text-secondary);
+}
+
 .game-date {
     font-family: 'Orbitron', sans-serif;
-    font-size: 1.4rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--cyan);
     text-shadow: 0 0 10px rgba(0, 240, 255, 0.3);
@@ -353,15 +371,17 @@ body.manager-mode .tab.manager-only {
 
 .game-time {
     font-family: 'Orbitron', sans-serif;
-    font-size: 1.3rem;
+    font-size: 1.2rem;
     font-weight: 700;
     color: var(--magenta);
     text-shadow: 0 0 10px rgba(255, 0, 255, 0.3);
 }
 
 .game-opponent {
-    font-size: 1.2rem;
-    font-weight: 500;
+    font-size: 1.4rem;
+    font-weight: 600;
+    text-align: center;
+    margin: 5px 0 15px 0;
 }
 
 .game-opponent span {
@@ -388,14 +408,17 @@ body.manager-mode .tab.manager-only {
 }
 
 .game-mode-badge {
-    display: inline-block;
-    padding: 4px 12px;
+    display: block;
+    text-align: center;
+    margin: 10px auto;
+    padding: 4px 16px;
     background: rgba(0, 240, 255, 0.15);
     border: 1px solid var(--cyan);
     border-radius: 15px;
-    font-size: 0.8rem;
+    font-size: 0.85rem;
     color: var(--cyan);
     font-weight: 500;
+    width: fit-content;
 }
 
 /* Withdrawal and roster status badges */
@@ -1834,6 +1857,52 @@ body.manager-mode .tab.manager-only {
     white-space: nowrap;
 }
 
+/* Discord Post Button Group */
+.discord-post-group {
+    display: flex;
+    gap: 5px;
+}
+
+.btn-discord-small {
+    padding: 8px 16px;
+    background: #5865F2;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-discord-small:hover {
+    background: #4752c4;
+}
+
+.btn-discord-mention {
+    padding: 8px 12px;
+    background: #3ba55c;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-discord-mention:hover {
+    background: #2d8049;
+}
+
+/* Manager Actions */
+.manager-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+}
+
 /* Login Required Message */
 .login-required-message {
     text-align: center;
@@ -2222,28 +2291,9 @@ body.manager-mode .tab.manager-only {
     background: var(--cyan);
 }
 
-/* Large Game Mode Badge - Above Opponent */
-.game-mode-large {
-    display: inline-block;
-    padding: 10px 25px;
-    background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(139, 0, 255, 0.25));
-    border: 2px solid var(--cyan);
-    border-radius: 25px;
-    font-family: 'Orbitron', sans-serif;
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: var(--cyan);
-    text-transform: uppercase;
-    letter-spacing: 3px;
-    text-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
-    margin: 10px 0;
-}
-
 /* Final Roster Section - Centered */
 .final-roster-section {
-    margin-top: 20px;
-    padding-top: 15px;
-    border-top: 1px solid var(--border);
+    margin-top: 15px;
     text-align: center;
 }
 
