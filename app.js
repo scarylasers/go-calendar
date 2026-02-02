@@ -1118,11 +1118,11 @@ function handleGameLinkParam(gameId) {
         return;
     }
 
-    // Switch to Games tab
+    // Switch to Calendar tab (correct tab name)
     document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
     document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-    document.querySelector('.tab[data-tab="games"]')?.classList.add('active');
-    document.getElementById('games')?.classList.add('active');
+    document.querySelector('.tab[data-tab="calendar"]')?.classList.add('active');
+    document.getElementById('calendar')?.classList.add('active');
 
     // Find and scroll to the game card
     const gameCard = document.querySelector(`.game-card[data-game-id="${gameId}"]`);
@@ -1132,19 +1132,94 @@ function handleGameLinkParam(gameId) {
         setTimeout(() => gameCard.classList.remove('highlighted'), 3000);
     }
 
-    // If user is logged in and on the roster, prompt to withdraw
-    if (state.currentPlayer && game.roster?.includes(state.currentPlayer)) {
-        setTimeout(() => {
-            if (confirm(`You're on the roster for ${game.opponent} on ${game.date}.\n\nDo you need to request a sub?`)) {
-                withdrawFromRoster(gameId);
-            }
-        }, 500);
-    } else if (!state.currentPlayer) {
-        // Not logged in - prompt to login
-        setTimeout(() => {
-            alert('Please log in with Discord to manage your availability for this game.');
-        }, 500);
+    // Show quick availability modal
+    setTimeout(() => {
+        showQuickAvailabilityModal(game);
+    }, 400);
+}
+
+function showQuickAvailabilityModal(game) {
+    const isLoggedIn = !!state.currentPlayer;
+    const hasResponded = game.available?.includes(state.currentPlayer) || game.unavailable?.includes(state.currentPlayer);
+    const isOnRoster = game.roster?.includes(state.currentPlayer);
+
+    // Build modal content based on user state
+    let modalContent = '';
+    let modalTitle = '';
+
+    if (!isLoggedIn) {
+        modalTitle = '🎮 Game Alert';
+        modalContent = `
+            <p><strong>${game.opponent}</strong> on <strong>${formatDate(game.date)}</strong> at <strong>${formatTime(game.time)}</strong></p>
+            <p class="modal-help">Log in with Discord to mark your availability.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-discord" onclick="window.location.href='${AUTH_BASE}/discord'">
+                    <svg class="discord-icon" viewBox="0 0 24 24" fill="currentColor"><path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z"/></svg>
+                    Login with Discord
+                </button>
+                <button class="btn btn-secondary" onclick="closeQuickModal()">Maybe Later</button>
+            </div>
+        `;
+    } else if (isOnRoster) {
+        modalTitle = '📋 You\'re on the Roster!';
+        modalContent = `
+            <p><strong>${game.opponent}</strong> on <strong>${formatDate(game.date)}</strong> at <strong>${formatTime(game.time)}</strong></p>
+            <p class="modal-help">Can't make it? Request a sub to cover for you.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-available" onclick="closeQuickModal()">I'll Be There! ✓</button>
+                <button class="btn btn-unavailable" onclick="closeQuickModal(); withdrawFromRoster('${game.id}')">I Need a Sub</button>
+            </div>
+        `;
+    } else if (!hasResponded) {
+        modalTitle = '🎮 Can You Play?';
+        modalContent = `
+            <p><strong>${game.opponent}</strong> on <strong>${formatDate(game.date)}</strong> at <strong>${formatTime(game.time)}</strong></p>
+            <p class="modal-help">Let us know if you're available for this game.</p>
+            <div class="modal-buttons">
+                <button class="btn btn-available" onclick="closeQuickModal(); setAvailability('${game.id}', true)">I Can Play ✓</button>
+                <button class="btn btn-unavailable" onclick="closeQuickModal(); setAvailability('${game.id}', false)">Can't Make It ✗</button>
+            </div>
+        `;
+    } else {
+        // Already responded
+        const isAvailable = game.available?.includes(state.currentPlayer);
+        modalTitle = '✅ Response Recorded';
+        modalContent = `
+            <p><strong>${game.opponent}</strong> on <strong>${formatDate(game.date)}</strong> at <strong>${formatTime(game.time)}</strong></p>
+            <p class="modal-help">You marked: <strong>${isAvailable ? 'Available' : 'Unavailable'}</strong></p>
+            <p class="modal-help">Want to change your response?</p>
+            <div class="modal-buttons">
+                <button class="btn ${isAvailable ? 'btn-available active' : 'btn-available'}" onclick="closeQuickModal(); setAvailability('${game.id}', true)">I Can Play ✓</button>
+                <button class="btn ${!isAvailable ? 'btn-unavailable active' : 'btn-unavailable'}" onclick="closeQuickModal(); setAvailability('${game.id}', false)">Can't Make It ✗</button>
+                <button class="btn btn-secondary" onclick="closeQuickModal()">Keep Response</button>
+            </div>
+        `;
     }
+
+    // Create and show modal
+    let modal = document.getElementById('quickAvailModal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'quickAvailModal';
+        modal.className = 'modal';
+        document.body.appendChild(modal);
+    }
+
+    modal.innerHTML = `
+        <div class="modal-content quick-avail-modal">
+            <h3>${modalTitle}</h3>
+            ${modalContent}
+        </div>
+    `;
+    modal.classList.add('active');
+    modal.onclick = (e) => {
+        if (e.target === modal) closeQuickModal();
+    };
+}
+
+function closeQuickModal() {
+    const modal = document.getElementById('quickAvailModal');
+    if (modal) modal.classList.remove('active');
 }
 
 async function withdrawFromRoster(gameId) {
