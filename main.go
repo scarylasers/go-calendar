@@ -1513,6 +1513,11 @@ func handleUpdateRoster(w http.ResponseWriter, r *http.Request) {
 		updates["subs"] = body.Subs
 	}
 
+	// Clear withdrawals if roster is now full (subs have been assigned)
+	if len(body.Roster) >= game.TeamSize {
+		updates["withdrawals"] = []string{}
+	}
+
 	updated, err := updateGame(gameID, updates)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
