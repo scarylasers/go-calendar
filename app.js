@@ -67,6 +67,8 @@ let state = {
     isManager: false,
     user: null, // Discord user info
     linkedUsers: {}, // Maps player IDs to their Discord info (avatar, etc.)
+    leagues: [],
+    divisions: [],
     loading: false
 };
 
@@ -339,6 +341,160 @@ async function saveWebhookAPI(webhook) {
         console.error('Failed to save webhook:', error);
         showError(error.message);
         return false;
+    }
+}
+
+// ==================== LEAGUES & DIVISIONS ====================
+
+async function fetchLeagues() {
+    try {
+        const response = await fetch(`${API_BASE}/leagues`);
+        state.leagues = await response.json();
+        populateLeagueDropdown();
+        renderLeaguesList();
+    } catch (error) {
+        console.error('Failed to fetch leagues:', error);
+    }
+}
+
+async function fetchDivisions() {
+    try {
+        const response = await fetch(`${API_BASE}/divisions`);
+        state.divisions = await response.json();
+        populateDivisionDropdown();
+        renderDivisionsList();
+    } catch (error) {
+        console.error('Failed to fetch divisions:', error);
+    }
+}
+
+function populateLeagueDropdown() {
+    const select = document.getElementById('gameLeague');
+    if (!select) return;
+    select.innerHTML = '<option value="">Select League</option>';
+    state.leagues.forEach(league => {
+        const opt = document.createElement('option');
+        opt.value = league;
+        opt.textContent = league;
+        select.appendChild(opt);
+    });
+}
+
+function populateDivisionDropdown() {
+    const select = document.getElementById('gameDivision');
+    if (!select) return;
+    select.innerHTML = '<option value="">Select Division</option>';
+    state.divisions.forEach(div => {
+        const opt = document.createElement('option');
+        opt.value = div;
+        opt.textContent = div;
+        select.appendChild(opt);
+    });
+}
+
+function renderLeaguesList() {
+    const container = document.getElementById('leaguesList');
+    if (!container) return;
+    container.innerHTML = state.leagues.map(league => `
+        <div class="item-row">
+            <span>${league}</span>
+            <button class="btn-remove" onclick="removeLeague('${league}')" title="Remove">×</button>
+        </div>
+    `).join('') || '<p class="no-items">No leagues added yet</p>';
+}
+
+function renderDivisionsList() {
+    const container = document.getElementById('divisionsList');
+    if (!container) return;
+    container.innerHTML = state.divisions.map(div => `
+        <div class="item-row">
+            <span>${div}</span>
+            <button class="btn-remove" onclick="removeDivision('${div}')" title="Remove">×</button>
+        </div>
+    `).join('') || '<p class="no-items">No divisions added yet</p>';
+}
+
+async function addLeague() {
+    const input = document.getElementById('newLeagueName');
+    const name = input.value.trim();
+    if (!name) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/leagues`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name })
+        });
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to add league');
+        }
+        state.leagues = await response.json();
+        input.value = '';
+        populateLeagueDropdown();
+        renderLeaguesList();
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+async function removeLeague(name) {
+    if (!confirm(`Remove league "${name}"?`)) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/leagues/${encodeURIComponent(name)}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to remove league');
+        state.leagues = await response.json();
+        populateLeagueDropdown();
+        renderLeaguesList();
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+async function addDivision() {
+    const input = document.getElementById('newDivisionName');
+    const name = input.value.trim();
+    if (!name) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/divisions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ name })
+        });
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to add division');
+        }
+        state.divisions = await response.json();
+        input.value = '';
+        populateDivisionDropdown();
+        renderDivisionsList();
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+async function removeDivision(name) {
+    if (!confirm(`Remove division "${name}"?`)) return;
+
+    try {
+        const response = await fetch(`${API_BASE}/divisions/${encodeURIComponent(name)}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to remove division');
+        state.divisions = await response.json();
+        populateDivisionDropdown();
+        renderDivisionsList();
+    } catch (error) {
+        showError(error.message);
     }
 }
 
@@ -1734,6 +1890,8 @@ async function init() {
 
     // Fetch data and render
     await fetchData();
+    await fetchLeagues();
+    await fetchDivisions();
     renderAll();
 
     // Set up event handlers

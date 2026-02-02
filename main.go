@@ -1772,6 +1772,142 @@ func handleSetWebhook(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
+// ==================== LEAGUES & DIVISIONS ====================
+
+func getListSetting(key string) []string {
+	value, _ := getSetting(key)
+	if value == "" {
+		return []string{}
+	}
+	var list []string
+	json.Unmarshal([]byte(value), &list)
+	return list
+}
+
+func setListSetting(key string, list []string) error {
+	data, _ := json.Marshal(list)
+	return setSetting(key, string(data))
+}
+
+func handleGetLeagues(w http.ResponseWriter, r *http.Request) {
+	leagues := getListSetting("leagues")
+	writeJSON(w, http.StatusOK, leagues)
+}
+
+func handleAddLeague(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		writeError(w, http.StatusBadRequest, "Name is required")
+		return
+	}
+
+	leagues := getListSetting("leagues")
+	// Check if already exists
+	for _, l := range leagues {
+		if l == body.Name {
+			writeError(w, http.StatusConflict, "League already exists")
+			return
+		}
+	}
+	leagues = append(leagues, body.Name)
+	if err := setListSetting("leagues", leagues); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, leagues)
+}
+
+func handleDeleteLeague(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	name := vars["name"]
+
+	leagues := getListSetting("leagues")
+	newLeagues := []string{}
+	for _, l := range leagues {
+		if l != name {
+			newLeagues = append(newLeagues, l)
+		}
+	}
+	if err := setListSetting("leagues", newLeagues); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, newLeagues)
+}
+
+func handleGetDivisions(w http.ResponseWriter, r *http.Request) {
+	divisions := getListSetting("divisions")
+	writeJSON(w, http.StatusOK, divisions)
+}
+
+func handleAddDivision(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	var body struct {
+		Name string `json:"name"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil || body.Name == "" {
+		writeError(w, http.StatusBadRequest, "Name is required")
+		return
+	}
+
+	divisions := getListSetting("divisions")
+	for _, d := range divisions {
+		if d == body.Name {
+			writeError(w, http.StatusConflict, "Division already exists")
+			return
+		}
+	}
+	divisions = append(divisions, body.Name)
+	if err := setListSetting("divisions", divisions); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, divisions)
+}
+
+func handleDeleteDivision(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	name := vars["name"]
+
+	divisions := getListSetting("divisions")
+	newDivisions := []string{}
+	for _, d := range divisions {
+		if d != name {
+			newDivisions = append(newDivisions, d)
+		}
+	}
+	if err := setListSetting("divisions", newDivisions); err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	writeJSON(w, http.StatusOK, newDivisions)
+}
+
 func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 	// Check manager permission
 	session := getSessionFromRequest(r)
@@ -2148,6 +2284,12 @@ func main() {
 	r.HandleFunc("/api/preferences/{playerId}", handleSetPreference).Methods("PUT")
 	r.HandleFunc("/api/webhook", handleGetWebhook).Methods("GET")
 	r.HandleFunc("/api/webhook", handleSetWebhook).Methods("PUT")
+	r.HandleFunc("/api/leagues", handleGetLeagues).Methods("GET")
+	r.HandleFunc("/api/leagues", handleAddLeague).Methods("POST")
+	r.HandleFunc("/api/leagues/{name}", handleDeleteLeague).Methods("DELETE")
+	r.HandleFunc("/api/divisions", handleGetDivisions).Methods("GET")
+	r.HandleFunc("/api/divisions", handleAddDivision).Methods("POST")
+	r.HandleFunc("/api/divisions/{name}", handleDeleteDivision).Methods("DELETE")
 	r.HandleFunc("/api/discord/post/{id}", handlePostToDiscord).Methods("POST")
 	r.HandleFunc("/api/users/linked", handleGetLinkedUsers).Methods("GET")
 

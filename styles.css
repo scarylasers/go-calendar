@@ -275,10 +275,12 @@ body.manager-mode .tab.manager-only {
 /* Game Countdown */
 .game-countdown {
     display: flex;
+    justify-content: center;
     align-items: center;
     gap: 8px;
     margin-top: 8px;
     padding: 8px 12px;
+    text-align: center;
     background: rgba(0, 240, 255, 0.1);
     border-radius: 5px;
     font-size: 0.9rem;
@@ -1021,6 +1023,89 @@ body.manager-mode .tab.manager-only {
 .manage-section h3 {
     color: var(--magenta);
     margin-bottom: 15px;
+}
+
+/* Leagues & Divisions Settings */
+.settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+}
+
+@media (max-width: 600px) {
+    .settings-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+.settings-column h4 {
+    color: var(--cyan);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.add-item-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.add-item-row input {
+    flex: 1;
+    padding: 8px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.add-item-row input:focus {
+    outline: none;
+    border-color: var(--cyan);
+}
+
+.items-list {
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.item-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    margin-bottom: 5px;
+}
+
+.item-row span {
+    color: var(--text-primary);
+}
+
+.btn-remove {
+    background: transparent;
+    border: none;
+    color: var(--danger);
+    font-size: 1.2rem;
+    cursor: pointer;
+    padding: 0 5px;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+}
+
+.btn-remove:hover {
+    opacity: 1;
+}
+
+.no-items {
+    color: var(--text-secondary);
+    font-style: italic;
+    font-size: 0.85rem;
+    padding: 10px;
 }
 
 .create-game-form {

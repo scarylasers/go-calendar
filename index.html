@@ -242,22 +242,12 @@
                             <label for="gameLeague">League:</label>
                             <select id="gameLeague">
                                 <option value="">Select League</option>
-                                <option value="PCVRL">PCVRL</option>
-                                <option value="VRL">VRL</option>
-                                <option value="Scrimmage">Scrimmage</option>
-                                <option value="Tournament">Tournament</option>
-                                <option value="Other">Other</option>
                             </select>
                         </div>
                         <div class="form-row">
                             <label for="gameDivision">Division:</label>
                             <select id="gameDivision">
                                 <option value="">Select Division</option>
-                                <option value="Premier">Premier</option>
-                                <option value="Division 1">Division 1</option>
-                                <option value="Division 2">Division 2</option>
-                                <option value="Division 3">Division 3</option>
-                                <option value="Open">Open</option>
                             </select>
                         </div>
                     </div>
@@ -293,6 +283,35 @@
                 <h3>Existing Games</h3>
                 <div id="manageGamesList" class="manage-games-list">
                     <!-- Games for management here -->
+                </div>
+            </div>
+
+            <div class="manage-section">
+                <h3>Leagues & Divisions</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                    Manage the leagues and divisions available when creating games.
+                </p>
+                <div class="settings-grid">
+                    <div class="settings-column">
+                        <h4>Leagues</h4>
+                        <div class="add-item-row">
+                            <input type="text" id="newLeagueName" placeholder="New league name">
+                            <button class="btn btn-small btn-primary" onclick="addLeague()">Add</button>
+                        </div>
+                        <div id="leaguesList" class="items-list">
+                            <!-- Leagues loaded here -->
+                        </div>
+                    </div>
+                    <div class="settings-column">
+                        <h4>Divisions</h4>
+                        <div class="add-item-row">
+                            <input type="text" id="newDivisionName" placeholder="New division name">
+                            <button class="btn btn-small btn-primary" onclick="addDivision()">Add</button>
+                        </div>
+                        <div id="divisionsList" class="items-list">
+                            <!-- Divisions loaded here -->
+                        </div>
+                    </div>
                 </div>
             </div>
 
