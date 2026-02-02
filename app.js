@@ -525,9 +525,9 @@ function updateAuthUI() {
     const loginSection = document.getElementById('loginSection');
     const userSection = document.getElementById('userSection');
     const managerTab = document.querySelector('.tab[data-tab="manage"]');
-    const clanRosterTab = document.querySelector('.tab[data-tab="clanroster"]');
     const rosterLoginRequired = document.getElementById('rosterLoginRequired');
     const rosterContent = document.getElementById('rosterContent');
+    const addMemberSection = document.getElementById('addMemberSection');
 
     if (state.user) {
         loginSection.style.display = 'none';
@@ -554,7 +554,7 @@ function updateAuthUI() {
         userName.textContent = state.user.displayName || state.user.username;
         managerBadge.style.display = state.isManager ? 'inline-block' : 'none';
         if (managerTab) managerTab.style.display = state.isManager ? 'inline-block' : 'none';
-        if (clanRosterTab) clanRosterTab.style.display = state.isManager ? 'inline-block' : 'none';
+        if (addMemberSection) addMemberSection.style.display = state.isManager ? 'block' : 'none';
 
         // Show linked player or prompt to link
         const myAccountBtn = document.getElementById('myAccountBtn');
@@ -576,7 +576,7 @@ function updateAuthUI() {
         loginSection.style.display = 'flex';
         userSection.style.display = 'none';
         if (managerTab) managerTab.style.display = 'none';
-        if (clanRosterTab) clanRosterTab.style.display = 'none';
+        if (addMemberSection) addMemberSection.style.display = 'none';
 
         // Hide roster content for logged-out users
         if (rosterLoginRequired) rosterLoginRequired.style.display = 'block';
@@ -849,15 +849,43 @@ function renderSimpleMemberCard(member, isVet = false) {
     const linkedUser = state.linkedUsers ? state.linkedUsers[member.id] : null;
     const avatarUrl = linkedUser?.avatar || '';
     const hasAvatar = avatarUrl && avatarUrl.length > 0;
+    const isNA = !member.region || member.region === 'NA';
+    const isEU = member.region === 'EU';
+
+    // Manager edit controls
+    const managerControls = state.isManager ? `
+        <div class="member-edit-controls">
+            <label class="edit-checkbox" title="NA Region">
+                <input type="checkbox" ${isNA ? 'checked' : ''} onchange="updateMemberRegion('${member.id}', this.checked ? 'NA' : 'EU')">
+                <span>NA</span>
+            </label>
+            <label class="edit-checkbox" title="EU Region">
+                <input type="checkbox" ${isEU ? 'checked' : ''} onchange="updateMemberRegion('${member.id}', this.checked ? 'EU' : 'NA')">
+                <span>EU</span>
+            </label>
+            <label class="edit-checkbox" title="Active Member">
+                <input type="checkbox" ${!isVet ? 'checked' : ''} onchange="updateMemberStatus('${member.id}', !this.checked)">
+                <span>Active</span>
+            </label>
+            <label class="edit-checkbox" title="Vet (Retired)">
+                <input type="checkbox" ${isVet ? 'checked' : ''} onchange="updateMemberStatus('${member.id}', this.checked)">
+                <span>Vet</span>
+            </label>
+            <button class="btn-remove-member" onclick="removeMember('${member.id}')" title="Remove">✕</button>
+        </div>
+    ` : '';
 
     return `
         <div class="member-card-simple ${isVet ? 'vet-member' : ''}" data-member-id="${member.id}">
-            ${hasAvatar
-                ? `<img class="member-avatar-small linked" src="${avatarUrl}" alt="" onerror="this.style.display='none'">`
-                : `<div class="member-avatar-small">${member.name.charAt(0).toUpperCase()}</div>`
-            }
-            <span class="member-name-small">${member.name}</span>
-            <span class="member-year-small">${member.year}</span>
+            <div class="member-info-row">
+                ${hasAvatar
+                    ? `<img class="member-avatar-small linked" src="${avatarUrl}" alt="" onerror="this.style.display='none'">`
+                    : `<div class="member-avatar-small">${member.name.charAt(0).toUpperCase()}</div>`
+                }
+                <span class="member-name-small">${member.name}</span>
+                <span class="member-year-small">${member.year}</span>
+            </div>
+            ${managerControls}
         </div>
     `;
 }
@@ -1550,8 +1578,6 @@ async function handleDrop(e) {
 
 async function addNewMember() {
     const nameInput = document.getElementById('newMemberName');
-    const typeSelect = document.getElementById('newMemberType');
-    const regionSelect = document.getElementById('newMemberRegion');
 
     const name = nameInput.value.trim();
     if (!name) {
@@ -1559,19 +1585,18 @@ async function addNewMember() {
         return;
     }
 
+    // Default to Active NA member - manager can change via checkboxes
     const member = {
         name: name,
-        isSub: typeSelect.value === 'sub',
-        region: regionSelect.value || null
+        isSub: false,
+        region: 'NA'
     };
 
     const result = await addMemberAPI(member);
     if (result) {
         nameInput.value = '';
-        regionSelect.value = '';
         await fetchData();
         renderAll();
-        renderManageRoster();
     }
 }
 
@@ -1661,6 +1686,22 @@ async function saveRosterOrderAPI(type, order) {
     } catch (error) {
         console.error('Error saving roster order:', error);
         return false;
+    }
+}
+
+async function updateMemberRegion(memberId, region) {
+    const result = await updateMemberAPI(memberId, { region });
+    if (result) {
+        await fetchData();
+        renderRoster();
+    }
+}
+
+async function updateMemberStatus(memberId, isVet) {
+    const result = await updateMemberAPI(memberId, { isSub: isVet });
+    if (result) {
+        await fetchData();
+        renderRoster();
     }
 }
 

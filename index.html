@@ -55,10 +55,9 @@
         <!-- Tabs -->
         <nav class="tabs">
             <button class="tab active" data-tab="calendar">Upcoming Games</button>
-            <button class="tab" data-tab="roster">Team Roster</button>
+            <button class="tab" data-tab="roster">GO Members</button>
             <button class="tab" data-tab="help">How To Use</button>
             <button class="tab manager-only" data-tab="manage" style="display: none;">Manage Games</button>
-            <button class="tab manager-only" data-tab="clanroster" style="display: none;">Clan Roster</button>
         </nav>
 
         <!-- Calendar Tab -->
@@ -77,7 +76,7 @@
 
         <!-- Roster Tab -->
         <section id="roster" class="tab-content">
-            <h2>Team Roster</h2>
+            <h2>GO Members</h2>
 
             <!-- Login required message -->
             <div id="rosterLoginRequired" class="login-required-message">
@@ -98,28 +97,39 @@
 
             <!-- Roster content (hidden until logged in) -->
             <div id="rosterContent" style="display: none;">
-                <!-- Active Members -->
-                <div class="roster-teams">
-                    <div class="roster-team-column">
-                        <h3><span class="team-flag">🇺🇸</span> NA Players</h3>
-                        <div id="naPlayers" class="roster-simple-list">
-                            <!-- NA players here -->
-                        </div>
-                    </div>
-                    <div class="roster-team-column">
-                        <h3><span class="team-flag">🇪🇺</span> EU Players</h3>
-                        <div id="euPlayers" class="roster-simple-list">
-                            <!-- EU players here -->
-                        </div>
+                <!-- Manager: Add New Member -->
+                <div id="addMemberSection" class="manage-section manager-only" style="display: none;">
+                    <h3>Add New Member</h3>
+                    <div class="add-member-row">
+                        <input type="text" id="newMemberName" placeholder="Player name">
+                        <button class="btn btn-primary" onclick="addNewMember()">Add Member</button>
                     </div>
                 </div>
 
-                <!-- Vets (Retired) -->
-                <div class="roster-section vets-section">
-                    <h3><span class="team-flag">🎖️</span> Vets</h3>
-                    <p class="vets-description">Retired members who sub when needed</p>
-                    <div id="vetsRoster" class="roster-simple-list vets-grid">
-                        <!-- Vets here -->
+                <!-- All Members List -->
+                <div id="membersListSection">
+                    <div class="roster-teams">
+                        <div class="roster-team-column">
+                            <h3><span class="team-flag">🇺🇸</span> NA Players</h3>
+                            <div id="naPlayers" class="roster-simple-list">
+                                <!-- NA players here -->
+                            </div>
+                        </div>
+                        <div class="roster-team-column">
+                            <h3><span class="team-flag">🇪🇺</span> EU Players</h3>
+                            <div id="euPlayers" class="roster-simple-list">
+                                <!-- EU players here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Vets (Retired) -->
+                    <div class="roster-section vets-section">
+                        <h3><span class="team-flag">🎖️</span> Vets</h3>
+                        <p class="vets-description">Retired members who sub when needed</p>
+                        <div id="vetsRoster" class="roster-simple-list vets-grid">
+                            <!-- Vets here -->
+                        </div>
                     </div>
                 </div>
             </div>
@@ -189,8 +199,8 @@
                         <p>Set up a Discord webhook to post game announcements (see guide below).</p>
                     </li>
                     <li>
-                        <strong>Manage Team Roster</strong>
-                        <p>Add, remove, or reorder team members in the Manage tab under "Team Roster".</p>
+                        <strong>Manage GO Members</strong>
+                        <p>Add or remove members in the "GO Members" tab. Use checkboxes to set region (NA/EU) and status (Active/Vet).</p>
                     </li>
                 </ol>
 
@@ -374,54 +384,6 @@
             </div>
         </section>
 
-        <!-- Clan Roster Tab (Manager Only) -->
-        <section id="clanroster" class="tab-content manager-only">
-            <h2>Clan Roster Management</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                Add or remove clan members. Drag players between Active and Vets sections to change their status.
-            </p>
-
-            <div class="manage-section">
-                <h3>Add New Member</h3>
-                <div class="roster-add-form">
-                    <div class="add-member-row">
-                        <input type="text" id="newMemberName" placeholder="Player name">
-                        <select id="newMemberType">
-                            <option value="active">Active</option>
-                            <option value="sub">Vet (Retired)</option>
-                        </select>
-                        <select id="newMemberRegion">
-                            <option value="">Region (optional)</option>
-                            <option value="NA">NA</option>
-                            <option value="EU">EU</option>
-                        </select>
-                        <button class="btn btn-primary" onclick="addNewMember()">Add Member</button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="clan-roster-sections">
-                <div class="manage-section clan-roster-section">
-                    <h3>Active Members</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 10px; font-size: 0.9rem;">
-                        Current active players who compete regularly
-                    </p>
-                    <div id="manageActiveRoster" class="sortable-roster">
-                        <!-- Active members will be populated here -->
-                    </div>
-                </div>
-
-                <div class="manage-section clan-roster-section vets-management">
-                    <h3>Vets (Retired Members)</h3>
-                    <p style="color: var(--text-secondary); margin-bottom: 10px; font-size: 0.9rem;">
-                        Retired members who sub when needed
-                    </p>
-                    <div id="manageSubRoster" class="sortable-roster">
-                        <!-- Vets will be populated here -->
-                    </div>
-                </div>
-            </div>
-        </section>
 
         <!-- Game Detail Modal -->
         <div id="gameModal" class="modal">

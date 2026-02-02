@@ -856,25 +856,35 @@ body.manager-mode .tab.manager-only {
 /* Simplified Member Cards */
 .member-card-simple {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 6px 10px;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
     background: var(--bg-dark);
     border-radius: 5px;
     transition: all 0.2s;
+    border: 1px solid var(--border);
+    margin-bottom: 8px;
 }
 
 .member-card-simple:hover {
     background: var(--bg-card-hover);
+    border-color: var(--cyan);
 }
 
 .member-card-simple.vet-member {
     opacity: 0.85;
+    border-color: var(--warning);
+}
+
+.member-info-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .member-avatar-small {
-    width: 24px;
-    height: 24px;
+    width: 28px;
+    height: 28px;
     border-radius: 50%;
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -883,7 +893,7 @@ body.manager-mode .tab.manager-only {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.65rem;
+    font-size: 0.7rem;
     color: var(--text-secondary);
 }
 
@@ -893,7 +903,7 @@ body.manager-mode .tab.manager-only {
 
 .member-name-small {
     flex: 1;
-    font-size: 0.8rem;
+    font-size: 0.9rem;
     color: var(--text-primary);
     white-space: nowrap;
     overflow: hidden;
@@ -901,9 +911,56 @@ body.manager-mode .tab.manager-only {
 }
 
 .member-year-small {
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     color: var(--text-secondary);
     margin-left: auto;
+}
+
+/* Member Edit Controls (Manager Only) */
+.member-edit-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+}
+
+.edit-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+
+.edit-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--cyan);
+    cursor: pointer;
+}
+
+.edit-checkbox:hover {
+    color: var(--cyan);
+}
+
+.btn-remove-member {
+    margin-left: auto;
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: var(--danger);
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-remove-member:hover {
+    background: var(--danger);
+    color: white;
 }
 
 /* Account Modal */
