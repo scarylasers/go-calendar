@@ -30,7 +30,7 @@ type Member struct {
 	Year   int    `json:"year"`
 	Region string `json:"region,omitempty"`
 	Note   string `json:"note,omitempty"`
-	IsSub  bool   `json:"isSub,omitempty"`
+	IsVet  bool   `json:"isVet,omitempty"`
 }
 
 type Game struct {
@@ -120,20 +120,20 @@ var ActiveMembers = []Member{
 }
 
 var SubMembers = []Member{
-	{ID: "shark", Name: "Shark", Year: 2021, IsSub: true},
-	{ID: "docbutler", Name: "GO_DocButler", Year: 2021, IsSub: true},
-	{ID: "drsmartazz", Name: "GO_DrSmartAzz", Year: 2021, IsSub: true},
-	{ID: "pbandc", Name: "PBandC-GO", Year: 2021, IsSub: true},
-	{ID: "maverick", Name: "GO_Maverick", Year: 2021, IsSub: true},
-	{ID: "honeygun", Name: "HoneyGUN", Year: 2022, IsSub: true},
-	{ID: "loki", Name: "GO_Loki714", Year: 2022, IsSub: true},
-	{ID: "lizlow", Name: "LizLow91", Year: 2023, IsSub: true},
-	{ID: "kc", Name: "GO_KC", Year: 2023, IsSub: true},
-	{ID: "lester", Name: "GO_Lester", Year: 2024, IsSub: true},
-	{ID: "kingslayer", Name: "GO_Kingslayer", Year: 2024, Region: "EU", IsSub: true},
-	{ID: "bacon", Name: "AllTheBaconAndEGGz", Year: 2025, IsSub: true},
-	{ID: "stooobe", Name: "GO_STOOOBE", Year: 2025, Note: "Former Head of GO", IsSub: true},
-	{ID: "johnharple", Name: "GO_JohnHarple", Year: 2025, IsSub: true},
+	{ID: "shark", Name: "Shark", Year: 2021, IsVet: true},
+	{ID: "docbutler", Name: "GO_DocButler", Year: 2021, IsVet: true},
+	{ID: "drsmartazz", Name: "GO_DrSmartAzz", Year: 2021, IsVet: true},
+	{ID: "pbandc", Name: "PBandC-GO", Year: 2021, IsVet: true},
+	{ID: "maverick", Name: "GO_Maverick", Year: 2021, IsVet: true},
+	{ID: "honeygun", Name: "HoneyGUN", Year: 2022, IsVet: true},
+	{ID: "loki", Name: "GO_Loki714", Year: 2022, IsVet: true},
+	{ID: "lizlow", Name: "LizLow91", Year: 2023, IsVet: true},
+	{ID: "kc", Name: "GO_KC", Year: 2023, IsVet: true},
+	{ID: "lester", Name: "GO_Lester", Year: 2024, IsVet: true},
+	{ID: "kingslayer", Name: "GO_Kingslayer", Year: 2024, Region: "EU", IsVet: true},
+	{ID: "bacon", Name: "AllTheBaconAndEGGz", Year: 2025, IsVet: true},
+	{ID: "stooobe", Name: "GO_STOOOBE", Year: 2025, Note: "Former Head of GO", IsVet: true},
+	{ID: "johnharple", Name: "GO_JohnHarple", Year: 2025, IsVet: true},
 }
 
 // ==================== DATABASE ====================
@@ -234,7 +234,7 @@ func initDB() error {
 			year INTEGER DEFAULT 2025,
 			region TEXT,
 			note TEXT,
-			is_sub BOOLEAN DEFAULT FALSE,
+			is_vet BOOLEAN DEFAULT FALSE,
 			sort_order INTEGER DEFAULT 0,
 			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 		)
@@ -259,13 +259,13 @@ func seedMembers() {
 
 	// Insert active members
 	for i, m := range ActiveMembers {
-		db.Exec(`INSERT INTO members (id, name, year, region, note, is_sub, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		db.Exec(`INSERT INTO members (id, name, year, region, note, is_vet, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 			m.ID, m.Name, m.Year, m.Region, m.Note, false, i)
 	}
 
 	// Insert sub members
 	for i, m := range SubMembers {
-		db.Exec(`INSERT INTO members (id, name, year, region, note, is_sub, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+		db.Exec(`INSERT INTO members (id, name, year, region, note, is_vet, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
 			m.ID, m.Name, m.Year, m.Region, m.Note, true, i)
 	}
 
@@ -1118,7 +1118,7 @@ func getMembersFromDB() ([]Member, []Member, error) {
 		return ActiveMembers, SubMembers, nil
 	}
 
-	rows, err := db.Query("SELECT id, name, year, COALESCE(region, ''), COALESCE(note, ''), is_sub FROM members ORDER BY is_sub, sort_order, name")
+	rows, err := db.Query("SELECT id, name, year, COALESCE(region, ''), COALESCE(note, ''), is_vet FROM members ORDER BY is_vet, sort_order, name")
 	if err != nil {
 		return nil, nil, err
 	}
@@ -1129,10 +1129,10 @@ func getMembersFromDB() ([]Member, []Member, error) {
 
 	for rows.Next() {
 		var m Member
-		if err := rows.Scan(&m.ID, &m.Name, &m.Year, &m.Region, &m.Note, &m.IsSub); err != nil {
+		if err := rows.Scan(&m.ID, &m.Name, &m.Year, &m.Region, &m.Note, &m.IsVet); err != nil {
 			continue
 		}
-		if m.IsSub {
+		if m.IsVet {
 			subs = append(subs, m)
 		} else {
 			active = append(active, m)
@@ -1186,7 +1186,7 @@ func handleAddMember(w http.ResponseWriter, r *http.Request) {
 
 	var input struct {
 		Name   string `json:"name"`
-		IsSub  bool   `json:"isSub"`
+		IsVet  bool   `json:"isVet"`
 		Region string `json:"region"`
 	}
 
@@ -1207,10 +1207,10 @@ func handleAddMember(w http.ResponseWriter, r *http.Request) {
 
 	// Get max sort order
 	var maxOrder int
-	db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM members WHERE is_sub = $1", input.IsSub).Scan(&maxOrder)
+	db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM members WHERE is_vet = $1", input.IsVet).Scan(&maxOrder)
 
-	_, err := db.Exec(`INSERT INTO members (id, name, year, region, is_sub, sort_order) VALUES ($1, $2, $3, $4, $5, $6)`,
-		id, input.Name, 2025, input.Region, input.IsSub, maxOrder+1)
+	_, err := db.Exec(`INSERT INTO members (id, name, year, region, is_vet, sort_order) VALUES ($1, $2, $3, $4, $5, $6)`,
+		id, input.Name, 2025, input.Region, input.IsVet, maxOrder+1)
 
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "Failed to add member")
@@ -1220,7 +1220,7 @@ func handleAddMember(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]interface{}{
 		"id":     id,
 		"name":   input.Name,
-		"isSub":  input.IsSub,
+		"isVet":  input.IsVet,
 		"region": input.Region,
 	})
 }
@@ -1237,7 +1237,7 @@ func handleUpdateMember(w http.ResponseWriter, r *http.Request) {
 
 	var input struct {
 		Name   *string `json:"name"`
-		IsSub  *bool   `json:"isSub"`
+		IsVet  *bool   `json:"isVet"`
 		Region *string `json:"region"`
 	}
 
@@ -1256,9 +1256,9 @@ func handleUpdateMember(w http.ResponseWriter, r *http.Request) {
 		args = append(args, *input.Name)
 		argNum++
 	}
-	if input.IsSub != nil {
-		updates = append(updates, fmt.Sprintf("is_sub = $%d", argNum))
-		args = append(args, *input.IsSub)
+	if input.IsVet != nil {
+		updates = append(updates, fmt.Sprintf("is_vet = $%d", argNum))
+		args = append(args, *input.IsVet)
 		argNum++
 	}
 	if input.Region != nil {

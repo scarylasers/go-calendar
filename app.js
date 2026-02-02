@@ -941,8 +941,8 @@ async function togglePreference(memberId) {
 }
 
 async function toggleRetire(memberId, retire) {
-    // Update member's isSub status (retire = move to vets)
-    const result = await updateMemberAPI(memberId, { isSub: retire });
+    // Update member's isVet status (retire = move to vets)
+    const result = await updateMemberAPI(memberId, { isVet: retire });
     if (result) {
         await fetchData();
         renderAll();
@@ -1472,8 +1472,8 @@ function renderManageRoster() {
     // Sort alphabetically by name
     const sortAlpha = (a, b) => a.name.localeCompare(b.name);
 
-    const activeMembersList = allMembers.filter(m => !m.isSub).sort(sortAlpha);
-    const vetMembersList = allMembers.filter(m => m.isSub).sort(sortAlpha);
+    const activeMembersList = allMembers.filter(m => !m.isVet).sort(sortAlpha);
+    const vetMembersList = allMembers.filter(m => m.isVet).sort(sortAlpha);
 
     activeContainer.innerHTML = activeMembersList.map(m => createRosterItemHTML(m)).join('') || '<p style="color: var(--text-secondary); padding: 10px;">No active members</p>';
     subContainer.innerHTML = vetMembersList.map(m => createRosterItemHTML(m)).join('') || '<p style="color: var(--text-secondary); padding: 10px;">No vets</p>';
@@ -1491,8 +1491,8 @@ function createRosterItemHTML(member) {
                 ${regionTag}
             </div>
             <div class="roster-item-actions">
-                <button class="move-btn" onclick="moveMember('${member.id}')" title="Move to ${member.isSub ? 'Active' : 'Vets'}">
-                    ${member.isSub ? '↑' : '↓'}
+                <button class="move-btn" onclick="moveMember('${member.id}')" title="Move to ${member.isVet ? 'Active' : 'Vets'}">
+                    ${member.isVet ? '↑' : '↓'}
                 </button>
                 <button onclick="removeMember('${member.id}')" title="Remove">✕</button>
             </div>
@@ -1562,17 +1562,17 @@ async function handleDrop(e) {
 
     const memberId = draggedItem.dataset.id;
     const targetContainer = e.currentTarget;
-    const isSub = targetContainer.id === 'manageSubRoster';
+    const isVet = targetContainer.id === 'manageSubRoster';
 
     // Get new order
     const items = targetContainer.querySelectorAll('.roster-item');
     const newOrder = Array.from(items).map(item => item.dataset.id);
 
     // Update member type if moved between lists
-    await updateMemberAPI(memberId, { isSub });
+    await updateMemberAPI(memberId, { isVet });
 
     // Save new order
-    await saveRosterOrderAPI(isSub ? 'subs' : 'active', newOrder);
+    await saveRosterOrderAPI(isVet ? 'subs' : 'active', newOrder);
 
     // Refresh data
     await fetchData();
@@ -1591,7 +1591,7 @@ async function addNewMember() {
     // Default to Active NA member - manager can change via checkboxes
     const member = {
         name: name,
-        isSub: false,
+        isVet: false,
         region: 'NA'
     };
 
@@ -1621,7 +1621,7 @@ async function moveMember(memberId) {
     const member = allMembers.find(m => m.id === memberId);
     if (!member) return;
 
-    await updateMemberAPI(memberId, { isSub: !member.isSub });
+    await updateMemberAPI(memberId, { isVet: !member.isVet });
     await fetchData();
     renderAll();
     renderManageRoster();
@@ -1704,7 +1704,7 @@ async function updateMemberRegion(memberId, region) {
 }
 
 async function updateMemberStatus(memberId, isVet) {
-    const result = await updateMemberAPI(memberId, { isSub: isVet });
+    const result = await updateMemberAPI(memberId, { isVet: isVet });
     if (result) {
         // Refresh members list and re-render
         const members = await fetchMembers();
@@ -1802,7 +1802,7 @@ function showMyAccount() {
 async function handleStatusChange(e) {
     const retire = e.target.value === 'retired';
     if (state.currentPlayer) {
-        const result = await updateMemberAPI(state.currentPlayer, { isSub: retire });
+        const result = await updateMemberAPI(state.currentPlayer, { isVet: retire });
         if (result) {
             await fetchData();
             renderAll();
