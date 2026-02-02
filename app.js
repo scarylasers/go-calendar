@@ -1493,6 +1493,21 @@ async function saveWebhookSetting() {
     }
 }
 
+async function loadWebhookSetting() {
+    try {
+        const response = await fetch(`${API_BASE}/webhook`, { credentials: 'include' });
+        if (response.ok) {
+            const data = await response.json();
+            const input = document.getElementById('discordWebhook');
+            if (input && data.webhook) {
+                input.value = data.webhook;
+            }
+        }
+    } catch (error) {
+        console.error('Failed to load webhook:', error);
+    }
+}
+
 // ==================== DISCORD TEST FUNCTIONS ====================
 
 async function testDiscordDM() {
@@ -2084,6 +2099,10 @@ function initEventHandlers() {
             }
 
             if (result) {
+                // Check if we should announce to Discord (only for new games)
+                const announceCheckbox = document.getElementById('announceToDiscord');
+                const shouldAnnounce = announceCheckbox?.checked && !state.editingGameId;
+
                 createForm.reset();
                 // Reset team size to default and hide custom input
                 if (document.getElementById('teamSize')) {
@@ -2093,7 +2112,20 @@ function initEventHandlers() {
                     document.getElementById('gameModeCustom').style.display = 'none';
                     document.getElementById('gameModeCustom').value = '';
                 }
+                // Uncheck announce checkbox
+                if (announceCheckbox) {
+                    announceCheckbox.checked = false;
+                }
                 renderAll();
+
+                // Announce to Discord after game is created
+                if (shouldAnnounce && result.id) {
+                    try {
+                        await announceGame(result.id);
+                    } catch (err) {
+                        console.error('Failed to announce game:', err);
+                    }
+                }
             }
         });
     }
@@ -2240,6 +2272,11 @@ async function init() {
 
     // Set up event handlers
     initEventHandlers();
+
+    // Load webhook setting for managers
+    if (state.isManager) {
+        loadWebhookSetting();
+    }
 
     // Auto-refresh every 30 seconds (also updates countdown timers)
     setInterval(async () => {

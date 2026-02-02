@@ -1803,9 +1803,15 @@ func handleGetWebhook(w http.ResponseWriter, r *http.Request) {
 	response := map[string]interface{}{
 		"configured": webhook != "",
 	}
-	if webhook != "" && len(webhook) > 10 {
+
+	// Return full webhook for managers so they can edit it
+	session := getSessionFromRequest(r)
+	if session != nil && session.IsManager && webhook != "" {
+		response["webhook"] = webhook
+	} else if webhook != "" && len(webhook) > 10 {
 		response["preview"] = "****" + webhook[len(webhook)-10:]
 	}
+
 	writeJSON(w, http.StatusOK, response)
 }
 
