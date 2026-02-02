@@ -28,7 +28,10 @@
                     </svg>
                     Login with Discord
                 </a>
-                <span class="login-hint">Sign in to mark your availability</span>
+                <div class="login-consent">
+                    By logging in, you agree to our <a href="#" class="privacy-link">Privacy Policy</a>
+                    and <a href="#" class="tos-link">Terms of Service</a>
+                </div>
             </div>
 
             <!-- Logged in -->
@@ -249,8 +252,114 @@
         </div>
     </div>
 
+    <!-- Privacy Policy Modal -->
+    <div id="privacyModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close-modal">&times;</span>
+            <h2>Privacy Policy</h2>
+            <div class="legal-content">
+                <p class="legal-updated">Last updated: February 2026</p>
+
+                <h3>What We Collect</h3>
+                <p>When you log in with Discord, we collect only:</p>
+                <ul>
+                    <li><strong>Discord User ID</strong> - A unique number identifying your account</li>
+                    <li><strong>Username</strong> - Your Discord display name</li>
+                    <li><strong>Avatar</strong> - Your profile picture URL (optional)</li>
+                    <li><strong>Server Roles</strong> - Only checked to verify manager status, not stored</li>
+                </ul>
+
+                <h3>What We DON'T Collect</h3>
+                <ul>
+                    <li>Your email address</li>
+                    <li>Your Discord password</li>
+                    <li>Your friends list</li>
+                    <li>Your private messages</li>
+                    <li>Any payment information</li>
+                </ul>
+
+                <h3>How We Use Your Data</h3>
+                <ul>
+                    <li>Display your name on the roster and availability lists</li>
+                    <li>Send you game reminders via Discord DM (only for games you're rostered for)</li>
+                    <li>Verify if you have manager permissions</li>
+                </ul>
+
+                <h3>Data Storage & Security</h3>
+                <ul>
+                    <li>Your data is stored securely on Render.com servers in the United States</li>
+                    <li>We use encrypted HTTPS connections for all data transmission</li>
+                    <li>Session tokens are cryptographically signed and expire after 7 days</li>
+                    <li>We never share your data with third parties</li>
+                </ul>
+
+                <h3>Your Rights</h3>
+                <ul>
+                    <li><strong>Access:</strong> You can see all data we have about you in your profile</li>
+                    <li><strong>Delete:</strong> Contact a manager to have your account unlinked</li>
+                    <li><strong>Revoke:</strong> You can revoke access anytime in Discord Settings → Authorized Apps</li>
+                </ul>
+
+                <h3>Contact</h3>
+                <p>Questions? Reach out to a team manager on Discord.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Terms of Service Modal -->
+    <div id="tosModal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close-modal">&times;</span>
+            <h2>Terms of Service</h2>
+            <div class="legal-content">
+                <p class="legal-updated">Last updated: February 2026</p>
+
+                <h3>1. What This Is</h3>
+                <p>This is a private scheduling tool for the Game Over Pop1 War Team. It helps team members coordinate game availability and receive reminders.</p>
+
+                <h3>2. Who Can Use It</h3>
+                <p>This app is intended for members of the Game Over clan and invited guests only.</p>
+
+                <h3>3. Your Responsibilities</h3>
+                <ul>
+                    <li>Keep your availability updated accurately</li>
+                    <li>Don't share your session or impersonate others</li>
+                    <li>Be respectful to other team members</li>
+                    <li>Don't attempt to access manager features without authorization</li>
+                </ul>
+
+                <h3>4. Manager Responsibilities</h3>
+                <ul>
+                    <li>Create games and manage rosters fairly</li>
+                    <li>Respect player privacy and preferences</li>
+                    <li>Don't abuse Discord webhook or DM features</li>
+                </ul>
+
+                <h3>5. No Warranties</h3>
+                <p>This app is provided "as is" for team coordination. We're not responsible for missed games due to technical issues. Always double-check important game times on Discord.</p>
+
+                <h3>6. Changes</h3>
+                <p>We may update these terms. Continued use means you accept any changes.</p>
+
+                <h3>7. Have Fun</h3>
+                <p>This is about gaming together. Let's keep it positive!</p>
+            </div>
+        </div>
+    </div>
+
     <footer class="footer">
         <p>Game Over Clan - Founded 2021 by Softest_Unicorn</p>
+        <div class="footer-links">
+            <a href="#" id="privacyLink">Privacy Policy</a>
+            <span class="footer-divider">|</span>
+            <a href="#" id="tosLink">Terms of Service</a>
+        </div>
+        <p class="security-note">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+            </svg>
+            Secure connection · Data encrypted · Discord OAuth protected
+        </p>
     </footer>
 
     <script src="app.js"></script>

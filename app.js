@@ -811,6 +811,22 @@ function initEventHandlers() {
         });
     });
 
+    // Privacy Policy links
+    document.querySelectorAll('.privacy-link, #privacyLink').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('privacyModal').style.display = 'flex';
+        });
+    });
+
+    // Terms of Service links
+    document.querySelectorAll('.tos-link, #tosLink').forEach(link => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            document.getElementById('tosModal').style.display = 'flex';
+        });
+    });
+
     // Help toggle
     initHelpToggle();
 }

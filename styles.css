@@ -979,3 +979,133 @@ body.manager-mode .tab.manager-only {
         padding-left: 45px;
     }
 }
+
+/* Legal Content */
+.legal-content {
+    max-height: 60vh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.legal-content h3 {
+    color: var(--cyan);
+    margin: 25px 0 10px;
+    font-size: 1.1rem;
+}
+
+.legal-content h3:first-of-type {
+    margin-top: 15px;
+}
+
+.legal-content p {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.legal-content ul {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 15px;
+}
+
+.legal-content ul li {
+    color: var(--text-secondary);
+    padding: 8px 15px;
+    padding-left: 25px;
+    position: relative;
+    line-height: 1.5;
+}
+
+.legal-content ul li::before {
+    content: '•';
+    position: absolute;
+    left: 10px;
+    color: var(--cyan);
+}
+
+.legal-content ul li strong {
+    color: var(--text-primary);
+}
+
+.legal-updated {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    font-style: italic;
+    margin-bottom: 20px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid var(--border);
+}
+
+/* Footer Links */
+.footer-links {
+    margin-top: 10px;
+    margin-bottom: 15px;
+}
+
+.footer-links a {
+    color: var(--cyan);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.3s;
+}
+
+.footer-links a:hover {
+    color: var(--magenta);
+    text-decoration: underline;
+}
+
+.footer-divider {
+    color: var(--text-secondary);
+    margin: 0 10px;
+}
+
+.security-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--success);
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+
+.security-note svg {
+    flex-shrink: 0;
+}
+
+/* Login Consent */
+.login-consent {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 8px;
+    line-height: 1.4;
+}
+
+.login-consent a {
+    color: var(--cyan);
+    text-decoration: none;
+}
+
+.login-consent a:hover {
+    text-decoration: underline;
+}
+
+/* Scrollbar for legal content */
+.legal-content::-webkit-scrollbar {
+    width: 6px;
+}
+
+.legal-content::-webkit-scrollbar-track {
+    background: var(--bg-dark);
+    border-radius: 3px;
+}
+
+.legal-content::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 3px;
+}
+
+.legal-content::-webkit-scrollbar-thumb:hover {
+    background: var(--cyan);
+}

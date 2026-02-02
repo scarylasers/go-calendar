@@ -1406,6 +1406,27 @@ func handleGetUserDiscordID(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"discordId": user.DiscordID})
 }
 
+// ==================== SECURITY MIDDLEWARE ====================
+
+func securityHeaders(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Prevent clickjacking
+		w.Header().Set("X-Frame-Options", "DENY")
+		// Prevent MIME type sniffing
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		// XSS protection
+		w.Header().Set("X-XSS-Protection", "1; mode=block")
+		// Referrer policy - don't leak URLs
+		w.Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+		// Content Security Policy
+		w.Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' https://cdn.discordapp.com data:; connect-src 'self'")
+		// Permissions Policy - disable unnecessary browser features
+		w.Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+
+		next.ServeHTTP(w, r)
+	})
+}
+
 // ==================== MAIN ====================
 
 func main() {
@@ -1461,5 +1482,5 @@ func main() {
 	}
 
 	log.Printf("Server starting on port %s", port)
-	log.Fatal(http.ListenAndServe(":"+port, r))
+	log.Fatal(http.ListenAndServe(":"+port, securityHeaders(r)))
 }
