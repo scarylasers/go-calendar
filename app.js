@@ -1063,6 +1063,108 @@ async function saveWebhookSetting() {
     }
 }
 
+// ==================== DISCORD TEST FUNCTIONS ====================
+
+async function testDiscordDM() {
+    const btn = document.getElementById('testDmBtn');
+    const resultDiv = document.getElementById('testResult');
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+        const response = await fetch('/api/test/dm', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showTestResult('success', 'Test DM sent! Check your Discord direct messages.');
+        } else {
+            showTestResult('error', data.error || 'Failed to send test DM');
+        }
+    } catch (error) {
+        showTestResult('error', 'Network error: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Test DM';
+    }
+}
+
+async function testDiscordWebhook() {
+    const btn = document.getElementById('testWebhookBtn');
+
+    btn.disabled = true;
+    btn.textContent = 'Posting...';
+
+    try {
+        const response = await fetch('/api/test/webhook', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showTestResult('success', 'Test message posted! Check your Discord channel.');
+        } else {
+            showTestResult('error', data.error || 'Failed to post test message');
+        }
+    } catch (error) {
+        showTestResult('error', 'Network error: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Send Test Post';
+    }
+}
+
+async function testSubNotification() {
+    const btn = document.getElementById('testSubBtn');
+
+    btn.disabled = true;
+    btn.textContent = 'Sending...';
+
+    try {
+        const response = await fetch('/api/test/sub-notification', {
+            method: 'POST',
+            credentials: 'include'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            const count = data.sentCount || 0;
+            showTestResult('success', `Sub alert test sent to ${count} manager(s). Check your Discord DMs.`);
+        } else {
+            showTestResult('error', data.error || 'Failed to send sub notification');
+        }
+    } catch (error) {
+        showTestResult('error', 'Network error: ' + error.message);
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Test Sub Alert';
+    }
+}
+
+function showTestResult(type, message) {
+    const resultDiv = document.getElementById('testResult');
+    if (!resultDiv) return;
+
+    resultDiv.style.display = 'block';
+    resultDiv.className = `test-result ${type}`;
+    resultDiv.innerHTML = `
+        <span class="test-result-icon">${type === 'success' ? '✓' : '✕'}</span>
+        <span class="test-result-message">${message}</span>
+    `;
+
+    // Auto-hide after 5 seconds
+    setTimeout(() => {
+        resultDiv.style.display = 'none';
+    }, 5000);
+}
+
 // ==================== ROSTER MANAGEMENT ====================
 
 function renderManageRoster() {

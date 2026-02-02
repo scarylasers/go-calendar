@@ -1864,6 +1864,125 @@ func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
+// ==================== TEST ENDPOINTS ====================
+
+func handleTestDM(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil {
+		writeError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	if discordBotToken == "" {
+		writeError(w, http.StatusServiceUnavailable, "Discord bot token not configured")
+		return
+	}
+
+	message := "🧪 **Test Message from GO Calendar**\n\nThis is a test direct message. If you're seeing this, DM notifications are working correctly!"
+
+	err := sendDiscordDM(session.DiscordID, message)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to send DM: "+err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func handleTestWebhook(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	webhook, _ := getSetting("discord_webhook")
+	if webhook == "" {
+		writeError(w, http.StatusBadRequest, "Discord webhook not configured. Please set up a webhook first.")
+		return
+	}
+
+	embed := map[string]interface{}{
+		"title":       "🧪 Test Post from GO Calendar",
+		"description": "This is a test message. If you're seeing this, your webhook is configured correctly!",
+		"color":       0x00f0ff,
+		"footer":      map[string]string{"text": "Game Over Pop1 War Team"},
+		"timestamp":   time.Now().UTC().Format(time.RFC3339),
+	}
+
+	payload := map[string]interface{}{
+		"username": "Game Over Bot",
+		"embeds":   []map[string]interface{}{embed},
+	}
+
+	payloadBytes, _ := json.Marshal(payload)
+	resp, err := http.Post(webhook, "application/json", bytes.NewReader(payloadBytes))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to post to Discord: "+err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		writeError(w, http.StatusInternalServerError, "Discord API error: "+string(body))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func handleTestSubNotification(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	if discordBotToken == "" {
+		writeError(w, http.StatusServiceUnavailable, "Discord bot token not configured")
+		return
+	}
+
+	// Get the requesting user's name
+	playerName := "Test Player"
+	if session.PlayerID != "" {
+		playerName = getMemberName(session.PlayerID)
+	}
+
+	message := fmt.Sprintf("🧪 **Test Sub Notification**\n\nThis is a test of the 'Need a Sub' alert system.\n\n**%s** would need a sub for:\n📅 Tomorrow at 9:00 PM ET\n⚔️ vs Test Opponent\n\nIf you received this, manager notifications are working!",
+		playerName)
+
+	// Get all managers and send DM
+	if db == nil {
+		writeError(w, http.StatusInternalServerError, "Database not connected")
+		return
+	}
+
+	rows, err := db.Query(`SELECT discord_id FROM users WHERE is_manager = true`)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to fetch managers: "+err.Error())
+		return
+	}
+	defer rows.Close()
+
+	sentCount := 0
+	for rows.Next() {
+		var discordID string
+		if err := rows.Scan(&discordID); err != nil {
+			continue
+		}
+		if err := sendDiscordDM(discordID, message); err == nil {
+			sentCount++
+		}
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"success":   true,
+		"sentCount": sentCount,
+	})
+}
+
 // ==================== REMINDER HELPERS (for cron job) ====================
 
 func handleGetPendingReminders(w http.ResponseWriter, r *http.Request) {
@@ -2008,6 +2127,11 @@ func main() {
 	r.HandleFunc("/api/webhook", handleSetWebhook).Methods("PUT")
 	r.HandleFunc("/api/discord/post/{id}", handlePostToDiscord).Methods("POST")
 	r.HandleFunc("/api/users/linked", handleGetLinkedUsers).Methods("GET")
+
+	// Test routes
+	r.HandleFunc("/api/test/dm", handleTestDM).Methods("POST")
+	r.HandleFunc("/api/test/webhook", handleTestWebhook).Methods("POST")
+	r.HandleFunc("/api/test/sub-notification", handleTestSubNotification).Methods("POST")
 
 	// Internal routes for cron job
 	r.HandleFunc("/api/internal/pending-reminders", handleGetPendingReminders).Methods("GET")

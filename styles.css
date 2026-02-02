@@ -1212,6 +1212,108 @@ body.manager-mode .tab.manager-only {
     background: linear-gradient(135deg, var(--magenta), var(--purple));
 }
 
+/* Test Discord Section */
+.test-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.test-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px 20px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    gap: 15px;
+}
+
+.test-item:hover {
+    border-color: var(--cyan);
+}
+
+.test-info {
+    flex: 1;
+}
+
+.test-info strong {
+    display: block;
+    color: var(--text-primary);
+    margin-bottom: 4px;
+}
+
+.test-info p {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+    margin: 0;
+}
+
+.btn-secondary {
+    padding: 10px 20px;
+    background: transparent;
+    border: 1px solid var(--cyan);
+    border-radius: 5px;
+    color: var(--cyan);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s;
+    white-space: nowrap;
+}
+
+.btn-secondary:hover {
+    background: var(--cyan);
+    color: var(--bg-dark);
+}
+
+.btn-secondary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.test-result {
+    margin-top: 15px;
+    padding: 15px 20px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.test-result.success {
+    background: rgba(0, 255, 136, 0.1);
+    border: 1px solid var(--success);
+    color: var(--success);
+}
+
+.test-result.error {
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid var(--danger);
+    color: var(--danger);
+}
+
+.test-result-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+}
+
+.test-result-message {
+    flex: 1;
+}
+
+@media (max-width: 600px) {
+    .test-item {
+        flex-direction: column;
+        align-items: stretch;
+        text-align: center;
+    }
+
+    .test-item .btn-secondary {
+        width: 100%;
+    }
+}
+
 /* Modals */
 .modal {
     position: fixed;

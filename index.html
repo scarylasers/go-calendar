@@ -260,7 +260,6 @@
                                 <option value="War" selected>War</option>
                                 <option value="Squads">Squads</option>
                                 <option value="Legions">Legions</option>
-                                <option value="Mixed">Mixed Modes</option>
                                 <option value="Other">Other...</option>
                             </select>
                             <input type="text" id="gameModeCustom" placeholder="Enter game mode" style="display: none; margin-top: 8px;">
@@ -342,6 +341,43 @@
                 <button class="btn btn-primary" style="margin-top: 10px;" onclick="saveWebhookSetting()">
                     Save Webhook
                 </button>
+            </div>
+
+            <div class="manage-section">
+                <h3>Test Discord Integration</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 15px;">
+                    Test your Discord setup to make sure notifications are working correctly.
+                </p>
+                <div class="test-buttons">
+                    <div class="test-item">
+                        <div class="test-info">
+                            <strong>Test DM</strong>
+                            <p>Send a test direct message to yourself</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="testDiscordDM()" id="testDmBtn">
+                            Send Test DM
+                        </button>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-info">
+                            <strong>Test Webhook Post</strong>
+                            <p>Post a test message to your webhook channel</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="testDiscordWebhook()" id="testWebhookBtn">
+                            Send Test Post
+                        </button>
+                    </div>
+                    <div class="test-item">
+                        <div class="test-info">
+                            <strong>Test Sub Notification</strong>
+                            <p>Simulate a "need sub" alert to managers</p>
+                        </div>
+                        <button class="btn btn-secondary" onclick="testSubNotification()" id="testSubBtn">
+                            Test Sub Alert
+                        </button>
+                    </div>
+                </div>
+                <div id="testResult" class="test-result" style="display: none;"></div>
             </div>
         </section>
 
