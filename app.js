@@ -1692,7 +1692,10 @@ async function saveRosterOrderAPI(type, order) {
 async function updateMemberRegion(memberId, region) {
     const result = await updateMemberAPI(memberId, { region });
     if (result) {
-        await fetchData();
+        // Refresh members list and re-render
+        const members = await fetchMembers();
+        if (members.active) activeMembers = members.active;
+        if (members.subs) subMembers = members.subs;
         renderRoster();
     }
 }
@@ -1700,7 +1703,10 @@ async function updateMemberRegion(memberId, region) {
 async function updateMemberStatus(memberId, isVet) {
     const result = await updateMemberAPI(memberId, { isSub: isVet });
     if (result) {
-        await fetchData();
+        // Refresh members list and re-render
+        const members = await fetchMembers();
+        if (members.active) activeMembers = members.active;
+        if (members.subs) subMembers = members.subs;
         renderRoster();
     }
 }
