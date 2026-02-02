@@ -1349,14 +1349,134 @@ body.manager-mode .tab.manager-only {
     color: var(--success);
 }
 
-.roster-counter {
+/* Roster Modal Styles */
+.roster-summary {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.roster-counter, .subs-counter {
     text-align: center;
-    padding: 10px;
-    margin-bottom: 15px;
+    padding: 10px 20px;
     background: var(--bg-dark);
     border-radius: 5px;
     font-weight: 600;
     border: 1px solid var(--border);
+}
+
+.counter-label {
+    color: var(--text-secondary);
+    margin-right: 5px;
+}
+
+.counter-value {
+    color: var(--cyan);
+    font-size: 1.1rem;
+}
+
+.roster-counter.roster-full {
+    border-color: var(--success);
+}
+
+.roster-counter.roster-full .counter-value {
+    color: var(--success);
+}
+
+.roster-counter.roster-over {
+    border-color: var(--danger);
+}
+
+.roster-counter.roster-over .counter-value {
+    color: var(--danger);
+}
+
+.roster-modal-section {
+    margin-bottom: 20px;
+}
+
+.roster-modal-section h4 {
+    color: var(--cyan);
+    margin-bottom: 10px;
+    font-size: 0.95rem;
+}
+
+.roster-player-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+
+.roster-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    gap: 10px;
+}
+
+.roster-player-row.withdrawn {
+    border-color: var(--danger);
+    opacity: 0.7;
+}
+
+.roster-player-row .player-name {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+}
+
+.roster-player-actions {
+    display: flex;
+    gap: 5px;
+    flex-shrink: 0;
+}
+
+.roster-btn {
+    padding: 5px 12px;
+    font-size: 0.8rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.roster-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+
+.roster-btn.active {
+    background: var(--success);
+    border-color: var(--success);
+    color: var(--bg-dark);
+}
+
+.roster-btn.sub-btn.active {
+    background: var(--warning);
+    border-color: var(--warning);
+    color: var(--bg-dark);
+}
+
+.subs-section h4 {
+    color: var(--warning);
+}
+
+.sub-chip {
+    background: rgba(255, 170, 0, 0.15) !important;
+    border-color: var(--warning) !important;
+    color: var(--warning) !important;
 }
 
 .player-select-item {

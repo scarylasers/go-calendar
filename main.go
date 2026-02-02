@@ -46,6 +46,7 @@ type Game struct {
 	Available   []string `json:"available"`
 	Unavailable []string `json:"unavailable"`
 	Roster      []string `json:"roster"`
+	Subs        []string `json:"subs"`
 	Withdrawals []string `json:"withdrawals"`
 	Reminded    bool     `json:"reminded"`
 }
@@ -183,6 +184,8 @@ func initDB() error {
 	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS team_size INTEGER DEFAULT 10`)
 	// Add withdrawals column for tracking players who pulled out
 	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS withdrawals TEXT DEFAULT '[]'`)
+	// Add subs column for backup players
+	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS subs TEXT DEFAULT '[]'`)
 
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS player_preferences (
@@ -699,7 +702,7 @@ func getAllGames() ([]Game, error) {
 
 	rows, err := db.Query(`SELECT id, date, time, opponent, COALESCE(league, ''), COALESCE(division, ''),
 		COALESCE(game_mode, 'War'), COALESCE(team_size, 10), notes, available, unavailable, roster,
-		COALESCE(withdrawals, '[]'), COALESCE(reminded, false) FROM games ORDER BY date, time`)
+		COALESCE(subs, '[]'), COALESCE(withdrawals, '[]'), COALESCE(reminded, false) FROM games ORDER BY date, time`)
 	if err != nil {
 		return nil, err
 	}
@@ -708,13 +711,14 @@ func getAllGames() ([]Game, error) {
 	var games []Game
 	for rows.Next() {
 		var g Game
-		var available, unavailable, roster, withdrawals string
-		if err := rows.Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &withdrawals, &g.Reminded); err != nil {
+		var available, unavailable, roster, subs, withdrawals string
+		if err := rows.Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &subs, &withdrawals, &g.Reminded); err != nil {
 			return nil, err
 		}
 		g.Available = parseJSONArray(available)
 		g.Unavailable = parseJSONArray(unavailable)
 		g.Roster = parseJSONArray(roster)
+		g.Subs = parseJSONArray(subs)
 		g.Withdrawals = parseJSONArray(withdrawals)
 		games = append(games, g)
 	}
@@ -731,11 +735,11 @@ func getGameByID(gameID string) (*Game, error) {
 	}
 
 	var g Game
-	var available, unavailable, roster, withdrawals string
+	var available, unavailable, roster, subs, withdrawals string
 	err := db.QueryRow(`SELECT id, date, time, opponent, COALESCE(league, ''), COALESCE(division, ''),
 		COALESCE(game_mode, 'War'), COALESCE(team_size, 10), notes, available, unavailable, roster,
-		COALESCE(withdrawals, '[]'), COALESCE(reminded, false) FROM games WHERE id = $1`, gameID).
-		Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &withdrawals, &g.Reminded)
+		COALESCE(subs, '[]'), COALESCE(withdrawals, '[]'), COALESCE(reminded, false) FROM games WHERE id = $1`, gameID).
+		Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &subs, &withdrawals, &g.Reminded)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -746,6 +750,7 @@ func getGameByID(gameID string) (*Game, error) {
 	g.Available = parseJSONArray(available)
 	g.Unavailable = parseJSONArray(unavailable)
 	g.Roster = parseJSONArray(roster)
+	g.Subs = parseJSONArray(subs)
 	g.Withdrawals = parseJSONArray(withdrawals)
 	return &g, nil
 }
@@ -764,8 +769,8 @@ func createGame(date, gameTime, opponent, league, division, gameMode string, tea
 
 	gameID := generateGameID()
 	_, err := db.Exec(
-		`INSERT INTO games (id, date, time, opponent, league, division, game_mode, team_size, notes, available, unavailable, roster, withdrawals, reminded)
-		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '[]', '[]', '[]', '[]', false)`,
+		`INSERT INTO games (id, date, time, opponent, league, division, game_mode, team_size, notes, available, unavailable, roster, subs, withdrawals, reminded)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '[]', '[]', '[]', '[]', '[]', false)`,
 		gameID, date, gameTime, opponent, league, division, gameMode, teamSize, notes,
 	)
 	if err != nil {
@@ -1425,13 +1430,25 @@ func handleUpdateRoster(w http.ResponseWriter, r *http.Request) {
 
 	var body struct {
 		Roster []string `json:"roster"`
+		Subs   []string `json:"subs"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		writeError(w, http.StatusBadRequest, "Invalid JSON")
 		return
 	}
 
-	updated, err := updateGame(gameID, map[string]interface{}{"roster": body.Roster})
+	// Enforce roster size limit
+	if len(body.Roster) > game.TeamSize {
+		writeError(w, http.StatusBadRequest, fmt.Sprintf("Roster cannot exceed %d players", game.TeamSize))
+		return
+	}
+
+	updates := map[string]interface{}{"roster": body.Roster}
+	if body.Subs != nil {
+		updates["subs"] = body.Subs
+	}
+
+	updated, err := updateGame(gameID, updates)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -1862,7 +1879,7 @@ func handleGetPendingReminders(w http.ResponseWriter, r *http.Request) {
 	rows, err := db.Query(`
 		SELECT id, date, time, opponent, COALESCE(league, ''), COALESCE(division, ''),
 		COALESCE(game_mode, 'War'), COALESCE(team_size, 10), notes, available, unavailable, roster,
-		COALESCE(withdrawals, '[]'), COALESCE(reminded, false)
+		COALESCE(subs, '[]'), COALESCE(withdrawals, '[]'), COALESCE(reminded, false)
 		FROM games
 		WHERE date = $1 AND (reminded = false OR reminded IS NULL) AND roster != '[]'
 	`, tomorrow)
@@ -1875,13 +1892,14 @@ func handleGetPendingReminders(w http.ResponseWriter, r *http.Request) {
 	var games []Game
 	for rows.Next() {
 		var g Game
-		var available, unavailable, roster, withdrawals string
-		if err := rows.Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &withdrawals, &g.Reminded); err != nil {
+		var available, unavailable, roster, subs, withdrawals string
+		if err := rows.Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &subs, &withdrawals, &g.Reminded); err != nil {
 			continue
 		}
 		g.Available = parseJSONArray(available)
 		g.Unavailable = parseJSONArray(unavailable)
 		g.Roster = parseJSONArray(roster)
+		g.Subs = parseJSONArray(subs)
 		g.Withdrawals = parseJSONArray(withdrawals)
 		games = append(games, g)
 	}

@@ -256,14 +256,14 @@
                     <div class="form-row-inline">
                         <div class="form-row">
                             <label for="gameMode">Game Mode:</label>
-                            <select id="gameMode">
+                            <select id="gameMode" onchange="toggleCustomGameMode()">
                                 <option value="War" selected>War</option>
-                                <option value="TDM">Team Deathmatch</option>
                                 <option value="Squads">Squads</option>
                                 <option value="Legions">Legions</option>
                                 <option value="Mixed">Mixed Modes</option>
-                                <option value="Custom">Custom</option>
+                                <option value="Other">Other...</option>
                             </select>
+                            <input type="text" id="gameModeCustom" placeholder="Enter game mode" style="display: none; margin-top: 8px;">
                         </div>
                         <div class="form-row">
                             <label for="teamSize">Players Needed:</label>

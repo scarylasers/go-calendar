@@ -246,13 +246,13 @@ async function setAvailabilityAPI(gameId, playerId, isAvailable) {
     }
 }
 
-async function updateRosterAPI(gameId, roster) {
+async function updateRosterAPI(gameId, roster, subs = []) {
     try {
         const response = await fetch(`${API_BASE}/games/${gameId}/roster`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             credentials: 'include',
-            body: JSON.stringify({ roster })
+            body: JSON.stringify({ roster, subs })
         });
         if (!response.ok) {
             const data = await response.json();
@@ -559,6 +559,11 @@ function renderGameCard(game) {
         return `<span class="roster-chip">${getMemberName(id)}</span>`;
     }).join('');
 
+    // Subs list (backup players)
+    const subPlayers = (game.subs || []).map(id => {
+        return `<span class="roster-chip sub-chip">${getMemberName(id)}</span>`;
+    }).join('');
+
     // Calculate countdown
     const countdown = getGameCountdown(game.date, game.time);
     const countdownClass = countdown.urgent ? 'urgent' : '';
@@ -604,8 +609,15 @@ function renderGameCard(game) {
 
             ${rosterPlayers ? `
                 <div class="roster-section">
-                    <h4>Final Roster</h4>
+                    <h4>Final Roster (${rosterCount}/${teamSize})</h4>
                     <div class="roster-chips">${rosterPlayers}</div>
+                </div>
+            ` : ''}
+
+            ${subPlayers ? `
+                <div class="roster-section subs-section">
+                    <h4>Backup Subs</h4>
+                    <div class="roster-chips">${subPlayers}</div>
                 </div>
             ` : ''}
 
@@ -839,114 +851,206 @@ function openRosterModal(gameId) {
     if (!game) return;
 
     const currentRoster = game.roster || [];
+    const currentSubs = game.subs || [];
     const teamSize = game.teamSize || 10;
     const withdrawals = game.withdrawals || [];
 
-    const renderPlayerCheckbox = (member, isAvailable, isSub = false) => {
-        const isSelected = currentRoster.includes(member.id);
+    const renderPlayerCheckbox = (member, isAvailable, section) => {
+        const isOnRoster = currentRoster.includes(member.id);
+        const isOnSubs = currentSubs.includes(member.id);
         const hasWithdrawn = withdrawals.includes(member.id);
         const pref = state.playerPreferences[member.id];
+        const isMemberSub = member.type === 'sub';
+
         return `
-            <label class="roster-checkbox ${isSelected ? 'selected' : ''} ${isSub ? 'sub' : ''} ${hasWithdrawn ? 'withdrawn' : ''}">
-                <input type="checkbox" value="${member.id}" ${isSelected ? 'checked' : ''}>
-                <span>${member.name}</span>
-                ${member.region ? `<span class="tag">[${member.region}]</span>` : ''}
-                ${pref === 'sub' ? '<span class="tag">(sub)</span>' : ''}
-                ${isAvailable ? '<span class="tag available">Available</span>' : ''}
-                ${hasWithdrawn ? '<span class="tag withdrawn">Needs Sub</span>' : ''}
-            </label>
+            <div class="roster-player-row ${hasWithdrawn ? 'withdrawn' : ''}">
+                <span class="player-name">
+                    ${member.name}
+                    ${member.region ? `<span class="tag">[${member.region}]</span>` : ''}
+                    ${pref === 'sub' ? '<span class="tag">(prefers sub)</span>' : ''}
+                    ${isAvailable ? '<span class="tag available">Available</span>' : ''}
+                    ${hasWithdrawn ? '<span class="tag withdrawn">Needs Sub</span>' : ''}
+                </span>
+                <div class="roster-player-actions">
+                    <button class="roster-btn ${isOnRoster ? 'active' : ''}"
+                            onclick="togglePlayerRoster('${gameId}', '${member.id}', 'roster')"
+                            ${isOnRoster ? '' : ''}>
+                        Roster
+                    </button>
+                    <button class="roster-btn sub-btn ${isOnSubs ? 'active' : ''}"
+                            onclick="togglePlayerRoster('${gameId}', '${member.id}', 'sub')">
+                        Sub
+                    </button>
+                </div>
+            </div>
         `;
     };
 
-    const availableActive = activeMembers.filter(m => game.available?.includes(m.id));
-    const availableSubs = subMembers.filter(m => game.available?.includes(m.id));
-    const otherActive = activeMembers.filter(m => !game.available?.includes(m.id));
-    const otherSubs = subMembers.filter(m => !game.available?.includes(m.id));
+    // Get all available players
+    const availablePlayers = allMembers.filter(m => game.available?.includes(m.id));
+    const otherPlayers = allMembers.filter(m => !game.available?.includes(m.id) && !withdrawals.includes(m.id));
 
     // Show players needing subs section if any
     const withdrawnPlayers = allMembers.filter(m => withdrawals.includes(m.id));
     const withdrawnSection = withdrawnPlayers.length > 0 ? `
-        <div class="roster-section withdrawn-section">
+        <div class="roster-modal-section withdrawn-section">
             <h4>⚠️ Need Subs (${withdrawnPlayers.length})</h4>
-            <div class="roster-list">
+            <div class="withdrawn-list">
                 ${withdrawnPlayers.map(m => `<span class="withdrawn-player">${m.name}</span>`).join('')}
             </div>
         </div>
     ` : '';
 
     content.innerHTML = `
-        <div class="roster-counter">Selected: <span id="rosterCount">${currentRoster.length}</span>/${teamSize}</div>
+        <div class="roster-summary">
+            <div class="roster-counter" id="rosterCounter">
+                <span class="counter-label">Roster:</span>
+                <span id="rosterCount" class="counter-value">${currentRoster.length}</span>/${teamSize}
+            </div>
+            <div class="subs-counter">
+                <span class="counter-label">Backup Subs:</span>
+                <span id="subsCount" class="counter-value">${currentSubs.length}</span>
+            </div>
+        </div>
 
         ${withdrawnSection}
 
-        <div class="roster-section">
-            <h4>Available Starters</h4>
-            <div class="roster-list">
-                ${availableActive.map(m => renderPlayerCheckbox(m, true)).join('') || '<p class="empty-list">None</p>'}
+        <div class="roster-modal-section">
+            <h4>Available Players (${availablePlayers.length})</h4>
+            <div class="roster-player-list">
+                ${availablePlayers.map(m => renderPlayerCheckbox(m, true, 'available')).join('') || '<p class="empty-list">No one marked available yet</p>'}
             </div>
         </div>
 
-        <div class="roster-section">
-            <h4>Available Subs</h4>
-            <div class="roster-list">
-                ${availableSubs.map(m => renderPlayerCheckbox(m, true, true)).join('') || '<p class="empty-list">None</p>'}
+        <div class="roster-modal-section">
+            <h4>Other Members</h4>
+            <div class="roster-player-list">
+                ${otherPlayers.map(m => renderPlayerCheckbox(m, false, 'other')).join('') || '<p class="empty-list">None</p>'}
             </div>
         </div>
 
-        <div class="roster-section">
-            <h4>Other Members (not confirmed)</h4>
-            <div class="roster-list">
-                ${otherActive.map(m => renderPlayerCheckbox(m, false)).join('')}
-                ${otherSubs.map(m => renderPlayerCheckbox(m, false, true)).join('')}
-            </div>
-        </div>
-
-        <button class="btn btn-primary" onclick="saveRoster('${gameId}')">Save Roster</button>
+        <button class="btn btn-primary" onclick="saveRoster('${gameId}')" style="width: 100%; margin-top: 15px;">Save Roster</button>
     `;
 
-    // Store team size for count validation
+    // Store game data for updates
+    content.dataset.gameId = gameId;
     content.dataset.teamSize = teamSize;
 
-    // Add change listener for counter
-    content.querySelectorAll('input[type="checkbox"]').forEach(cb => {
-        cb.addEventListener('change', updateRosterCount);
-    });
+    // Initialize temp arrays from current game state
+    tempRoster = [...currentRoster];
+    tempSubs = [...currentSubs];
 
     modal.classList.add('active');
 }
 
-function updateRosterCount() {
-    const count = document.querySelectorAll('#rosterModalContent input[type="checkbox"]:checked').length;
-    const counter = document.getElementById('rosterCount');
-    const content = document.getElementById('rosterModalContent');
-    const teamSize = parseInt(content?.dataset.teamSize) || 10;
+// Temporary state for roster modal
+let tempRoster = [];
+let tempSubs = [];
 
-    if (counter) {
-        counter.textContent = count;
-        // Add visual feedback if over/under team size
-        const counterParent = counter.parentElement;
-        if (counterParent) {
-            counterParent.classList.remove('roster-full', 'roster-over');
-            if (count === teamSize) {
-                counterParent.classList.add('roster-full');
-            } else if (count > teamSize) {
-                counterParent.classList.add('roster-over');
-            }
+function togglePlayerRoster(gameId, playerId, type) {
+    const game = state.games.find(g => g.id === gameId);
+    if (!game) return;
+
+    const teamSize = game.teamSize || 10;
+
+    // Initialize temp arrays from current game state if not set
+    if (!tempRoster.length && !tempSubs.length) {
+        tempRoster = [...(game.roster || [])];
+        tempSubs = [...(game.subs || [])];
+    }
+
+    // Remove from both arrays first
+    tempRoster = tempRoster.filter(id => id !== playerId);
+    tempSubs = tempSubs.filter(id => id !== playerId);
+
+    if (type === 'roster') {
+        // Check if already at limit
+        if (tempRoster.length >= teamSize) {
+            showError(`Roster is full (${teamSize} players max). Remove someone first or add as backup sub.`);
+            return;
+        }
+        // Check if was already on roster (toggle off)
+        if (game.roster?.includes(playerId) && !tempRoster.includes(playerId)) {
+            // Already removed above, do nothing
+        } else {
+            tempRoster.push(playerId);
+        }
+    } else if (type === 'sub') {
+        // Check if was already a sub (toggle off)
+        if (game.subs?.includes(playerId) && !tempSubs.includes(playerId)) {
+            // Already removed above, do nothing
+        } else {
+            tempSubs.push(playerId);
         }
     }
+
+    // Update UI
+    updateRosterModalUI(gameId);
 }
 
-async function saveRoster(gameId) {
-    const checkboxes = document.querySelectorAll('#rosterModalContent input[type="checkbox"]:checked');
-    const roster = Array.from(checkboxes).map(cb => cb.value);
+function updateRosterModalUI(gameId) {
+    const game = state.games.find(g => g.id === gameId);
+    if (!game) return;
 
-    const result = await updateRosterAPI(gameId, roster);
-    if (result) {
-        const game = state.games.find(g => g.id === gameId);
-        if (game) {
-            game.roster = result.roster;
+    // Update counters
+    const rosterCountEl = document.getElementById('rosterCount');
+    const subsCountEl = document.getElementById('subsCount');
+    const rosterCounter = document.getElementById('rosterCounter');
+
+    if (rosterCountEl) rosterCountEl.textContent = tempRoster.length;
+    if (subsCountEl) subsCountEl.textContent = tempSubs.length;
+
+    // Update counter styling
+    const teamSize = game.teamSize || 10;
+    if (rosterCounter) {
+        rosterCounter.classList.remove('roster-full', 'roster-over');
+        if (tempRoster.length === teamSize) {
+            rosterCounter.classList.add('roster-full');
+        } else if (tempRoster.length > teamSize) {
+            rosterCounter.classList.add('roster-over');
         }
+    }
+
+    // Update button states
+    document.querySelectorAll('.roster-player-row').forEach(row => {
+        const buttons = row.querySelectorAll('.roster-btn');
+        const rosterBtn = buttons[0];
+        const subBtn = buttons[1];
+
+        if (rosterBtn && subBtn) {
+            const playerId = rosterBtn.getAttribute('onclick').match(/'([^']+)'/g)[1].replace(/'/g, '');
+
+            rosterBtn.classList.toggle('active', tempRoster.includes(playerId));
+            subBtn.classList.toggle('active', tempSubs.includes(playerId));
+        }
+    });
+}
+
+// updateRosterCount is now handled by updateRosterModalUI
+
+async function saveRoster(gameId) {
+    const game = state.games.find(g => g.id === gameId);
+    if (!game) return;
+
+    // Use temp arrays if they have been modified, otherwise use current game state
+    const roster = tempRoster.length > 0 || tempSubs.length > 0 ? tempRoster : (game.roster || []);
+    const subs = tempRoster.length > 0 || tempSubs.length > 0 ? tempSubs : (game.subs || []);
+
+    // Enforce team size
+    const teamSize = game.teamSize || 10;
+    if (roster.length > teamSize) {
+        showError(`Roster cannot exceed ${teamSize} players`);
+        return;
+    }
+
+    const result = await updateRosterAPI(gameId, roster, subs);
+    if (result) {
+        game.roster = result.roster;
+        game.subs = result.subs;
         document.getElementById('rosterModal').classList.remove('active');
+        // Clear temp arrays
+        tempRoster = [];
+        tempSubs = [];
         renderAll();
     }
 }
@@ -1321,6 +1425,22 @@ async function saveAccountSettings() {
     }
 }
 
+// ==================== FORM HELPERS ====================
+
+function toggleCustomGameMode() {
+    const select = document.getElementById('gameMode');
+    const customInput = document.getElementById('gameModeCustom');
+    if (select && customInput) {
+        if (select.value === 'Other') {
+            customInput.style.display = 'block';
+            customInput.focus();
+        } else {
+            customInput.style.display = 'none';
+            customInput.value = '';
+        }
+    }
+}
+
 // ==================== HELP TAB ====================
 
 function initHelpToggle() {
@@ -1358,13 +1478,26 @@ function initEventHandlers() {
     if (createForm) {
         createForm.addEventListener('submit', async (e) => {
             e.preventDefault();
+
+            // Handle custom game mode
+            let gameMode = document.getElementById('gameMode')?.value || 'War';
+            if (gameMode === 'Other') {
+                const customMode = document.getElementById('gameModeCustom')?.value?.trim();
+                if (customMode) {
+                    gameMode = customMode;
+                } else {
+                    showError('Please enter a game mode');
+                    return;
+                }
+            }
+
             const gameData = {
                 date: document.getElementById('gameDate').value,
                 time: document.getElementById('gameTime').value,
                 opponent: document.getElementById('opponent').value,
                 league: document.getElementById('gameLeague')?.value || '',
                 division: document.getElementById('gameDivision')?.value || '',
-                gameMode: document.getElementById('gameMode')?.value || 'War',
+                gameMode: gameMode,
                 teamSize: parseInt(document.getElementById('teamSize')?.value) || 10,
                 notes: document.getElementById('gameNotes').value
             };
@@ -1373,9 +1506,13 @@ function initEventHandlers() {
             if (game) {
                 state.games.push(game);
                 createForm.reset();
-                // Reset team size to default
+                // Reset team size to default and hide custom input
                 if (document.getElementById('teamSize')) {
                     document.getElementById('teamSize').value = '10';
+                }
+                if (document.getElementById('gameModeCustom')) {
+                    document.getElementById('gameModeCustom').style.display = 'none';
+                    document.getElementById('gameModeCustom').value = '';
                 }
                 renderAll();
             }
@@ -1419,6 +1556,11 @@ function initEventHandlers() {
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.addEventListener('click', () => {
             btn.closest('.modal').classList.remove('active');
+            // Clear temp roster arrays when closing roster modal
+            if (btn.closest('#rosterModal')) {
+                tempRoster = [];
+                tempSubs = [];
+            }
         });
     });
 
@@ -1427,6 +1569,11 @@ function initEventHandlers() {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 modal.classList.remove('active');
+                // Clear temp roster arrays when closing roster modal
+                if (modal.id === 'rosterModal') {
+                    tempRoster = [];
+                    tempSubs = [];
+                }
             }
         });
     });
