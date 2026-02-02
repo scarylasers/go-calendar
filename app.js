@@ -792,9 +792,12 @@ function renderGameCard(game) {
             ${game.notes ? `<div class="game-notes">${game.notes}</div>` : ''}
 
             <div class="game-status">
-                <span class="status-badge ${rosterStatusClass}">Roster: ${rosterCount}/${teamSize}</span>
+                <span class="status-badge ${rosterStatusClass}">
+                    Roster: ${rosterCount}/${teamSize}${needsPlayers ? ` <span class="needs-more">(${teamSize - rosterCount} more needed)</span>` : ''}
+                </span>
                 <span class="status-badge available-badge">${availableCount} Available</span>
-                ${withdrawalCount > 0 && state.isManager ? `<span class="status-badge withdrawal-badge">${withdrawalCount} Need${withdrawalCount > 1 ? '' : 's'} Sub</span>` : ''}
+                ${withdrawalCount > 0 && state.isManager ? `<span class="status-badge withdrawal-badge clickable" onclick="openRosterModal('${game.id}')" title="Click to assign subs">⚠️ ${withdrawalCount} Need${withdrawalCount > 1 ? '' : 's'} Sub</span>` : ''}
+                ${withdrawalCount > 0 && !state.isManager ? `<span class="status-badge withdrawal-badge">⚠️ ${withdrawalCount} Need${withdrawalCount > 1 ? '' : 's'} Sub</span>` : ''}
             </div>
 
             ${availabilityButtons}

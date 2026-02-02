@@ -453,6 +453,21 @@ body.manager-mode .tab.manager-only {
     border: 1px solid var(--danger);
 }
 
+.withdrawal-badge.clickable {
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.withdrawal-badge.clickable:hover {
+    background: rgba(255, 68, 68, 0.4);
+    transform: scale(1.05);
+}
+
+.needs-more {
+    font-weight: 400;
+    opacity: 0.9;
+}
+
 .btn-warning {
     background: var(--warning);
     color: var(--bg-dark);
