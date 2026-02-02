@@ -765,6 +765,7 @@ function renderGameCard(game) {
                     <span class="game-time">${formatTime(game.time)}</span>
                 </div>
                 <div class="game-countdown ${countdownClass}">
+                    <span class="countdown-label">Gametime in:</span>
                     <span class="countdown-time ${countdownClass}">${countdown.text}</span>
                 </div>
             </div>
@@ -803,7 +804,7 @@ function renderGameCard(game) {
                     <button class="btn btn-secondary" onclick="openRosterModal('${game.id}')">Select Roster</button>
                     <div class="discord-post-group">
                         <button class="btn btn-discord-small" onclick="postToDiscord('${game.id}', false)">Post to Discord</button>
-                        <button class="btn btn-discord-mention" onclick="postToDiscord('${game.id}', true)" title="Post with @mentions">@ Mention</button>
+                        <button class="btn btn-discord-mention" onclick="postToDiscord('${game.id}', true)" title="Post with @mentions">Post to Discord and Mention</button>
                     </div>
                 </div>
             ` : ''}
