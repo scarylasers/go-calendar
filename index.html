@@ -40,13 +40,7 @@
                 <div id="playerInfo" class="player-info">
                     <span id="linkedPlayer"></span>
                 </div>
-                <div id="playerPreference" class="player-preference" style="display: none;">
-                    <label>My Role:</label>
-                    <select id="rolePreference">
-                        <option value="starter">Starter (Full Season)</option>
-                        <option value="sub">Prefer to Sub</option>
-                    </select>
-                </div>
+                <button id="myAccountBtn" class="btn btn-small" onclick="showMyAccount()" style="display: none;">My Account</button>
                 <button id="logoutBtn" class="btn btn-small">Logout</button>
             </div>
         </div>
@@ -61,8 +55,13 @@
 
         <!-- Calendar Tab -->
         <section id="calendar" class="tab-content active">
-            <h2>Upcoming Games</h2>
-            <p class="timezone-note">All times in Eastern (ET)</p>
+            <div class="calendar-header">
+                <h2>Upcoming Games</h2>
+                <div class="et-clock">
+                    <span class="clock-label">Current ET:</span>
+                    <span id="etClock" class="clock-time">--:-- --</span>
+                </div>
+            </div>
             <div id="gamesList" class="games-list">
                 <!-- Games will be populated here -->
             </div>
@@ -91,63 +90,27 @@
 
             <!-- Roster content (hidden until logged in) -->
             <div id="rosterContent" style="display: none;">
-                <!-- Save bar -->
-                <div class="roster-save-bar">
-                    <span id="rosterSaveStatus" class="save-status"></span>
-                    <button id="saveRosterBtn" class="btn btn-primary" onclick="saveRosterPreferences()">
-                        Save Changes
-                    </button>
-                </div>
-
-                <!-- NA Team -->
-                <div class="roster-section team-section">
-                    <h3>
-                        <span class="team-flag">🇺🇸</span> NA Team
-                    </h3>
-                    <div class="roster-columns">
-                        <div class="roster-column">
-                            <h4>Starters</h4>
-                            <div id="naStarters" class="roster-list">
-                                <!-- NA Starters here -->
-                            </div>
-                        </div>
-                        <div class="roster-column">
-                            <h4>Subs</h4>
-                            <div id="naSubs" class="roster-list">
-                                <!-- NA Subs here -->
-                            </div>
+                <!-- Active Members -->
+                <div class="roster-teams">
+                    <div class="roster-team-column">
+                        <h3><span class="team-flag">🇺🇸</span> NA Players</h3>
+                        <div id="naPlayers" class="roster-simple-list">
+                            <!-- NA players here -->
                         </div>
                     </div>
-                </div>
-
-                <!-- EU Team -->
-                <div class="roster-section team-section">
-                    <h3>
-                        <span class="team-flag">🇪🇺</span> EU Team
-                    </h3>
-                    <div class="roster-columns">
-                        <div class="roster-column">
-                            <h4>Starters</h4>
-                            <div id="euStarters" class="roster-list">
-                                <!-- EU Starters here -->
-                            </div>
-                        </div>
-                        <div class="roster-column">
-                            <h4>Subs</h4>
-                            <div id="euSubs" class="roster-list">
-                                <!-- EU Subs here -->
-                            </div>
+                    <div class="roster-team-column">
+                        <h3><span class="team-flag">🇪🇺</span> EU Players</h3>
+                        <div id="euPlayers" class="roster-simple-list">
+                            <!-- EU players here -->
                         </div>
                     </div>
                 </div>
 
                 <!-- Vets (Retired) -->
                 <div class="roster-section vets-section">
-                    <h3>
-                        <span class="team-flag">🎖️</span> Vets
-                    </h3>
-                    <p class="vets-description">Retired members and veterans who sub when needed</p>
-                    <div id="vetsRoster" class="roster-list vets-list">
+                    <h3><span class="team-flag">🎖️</span> Vets</h3>
+                    <p class="vets-description">Retired members who sub when needed</p>
+                    <div id="vetsRoster" class="roster-simple-list vets-grid">
                         <!-- Vets here -->
                     </div>
                 </div>
@@ -256,13 +219,56 @@
             <div class="manage-section">
                 <h3>Create New Game Day</h3>
                 <form id="createGameForm" class="create-game-form">
-                    <div class="form-row">
-                        <label for="gameDate">Date:</label>
-                        <input type="date" id="gameDate" required>
+                    <div class="form-row-inline">
+                        <div class="form-row">
+                            <label for="gameDate">Date:</label>
+                            <input type="date" id="gameDate" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="gameTime">Time (ET):</label>
+                            <input type="time" id="gameTime" required>
+                        </div>
                     </div>
-                    <div class="form-row">
-                        <label for="gameTime">Time (ET):</label>
-                        <input type="time" id="gameTime" required>
+                    <div class="form-row-inline">
+                        <div class="form-row">
+                            <label for="gameLeague">League:</label>
+                            <select id="gameLeague">
+                                <option value="">Select League</option>
+                                <option value="PCVRL">PCVRL</option>
+                                <option value="VRL">VRL</option>
+                                <option value="Scrimmage">Scrimmage</option>
+                                <option value="Tournament">Tournament</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="gameDivision">Division:</label>
+                            <select id="gameDivision">
+                                <option value="">Select Division</option>
+                                <option value="Premier">Premier</option>
+                                <option value="Division 1">Division 1</option>
+                                <option value="Division 2">Division 2</option>
+                                <option value="Division 3">Division 3</option>
+                                <option value="Open">Open</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row-inline">
+                        <div class="form-row">
+                            <label for="gameMode">Game Mode:</label>
+                            <select id="gameMode">
+                                <option value="War" selected>War</option>
+                                <option value="TDM">Team Deathmatch</option>
+                                <option value="Squads">Squads</option>
+                                <option value="Legions">Legions</option>
+                                <option value="Mixed">Mixed Modes</option>
+                                <option value="Custom">Custom</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="teamSize">Players Needed:</label>
+                            <input type="number" id="teamSize" value="10" min="1" max="20">
+                        </div>
                     </div>
                     <div class="form-row">
                         <label for="opponent">Opponent Team:</label>
@@ -357,6 +363,47 @@
                 <div id="rosterModalContent">
                     <!-- Dynamic content -->
                 </div>
+            </div>
+        </div>
+
+        <!-- My Account Modal -->
+        <div id="accountModal" class="modal">
+            <div class="modal-content">
+                <span class="close-modal">&times;</span>
+                <h2>My Account</h2>
+
+                <div class="account-section">
+                    <h4>Player Status</h4>
+                    <div class="status-toggle">
+                        <label class="toggle-option">
+                            <input type="radio" name="playerStatus" value="active" id="statusActive">
+                            <span class="toggle-label">Active</span>
+                            <span class="toggle-desc">Available for games</span>
+                        </label>
+                        <label class="toggle-option">
+                            <input type="radio" name="playerStatus" value="retired" id="statusRetired">
+                            <span class="toggle-label">Retired (Vet)</span>
+                            <span class="toggle-desc">Sub when needed</span>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="account-section">
+                    <h4>Notifications (Coming Soon)</h4>
+                    <div class="form-row">
+                        <label for="accountEmail">Email:</label>
+                        <input type="email" id="accountEmail" placeholder="your@email.com">
+                    </div>
+                    <div class="form-row">
+                        <label for="accountPhone">Phone:</label>
+                        <input type="tel" id="accountPhone" placeholder="+1 (555) 123-4567">
+                    </div>
+                    <p class="account-note">Email and phone notifications coming in a future update</p>
+                </div>
+
+                <button class="btn btn-primary" onclick="saveAccountSettings()" style="margin-top: 15px; width: 100%;">
+                    Save Changes
+                </button>
             </div>
         </div>
 

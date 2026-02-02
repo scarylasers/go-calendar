@@ -236,10 +236,82 @@ body.manager-mode .tab.manager-only {
     margin-bottom: 20px;
 }
 
-.timezone-note {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
+/* Calendar Header with Clock */
+.calendar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.calendar-header h2 {
+    margin-bottom: 0;
+}
+
+.et-clock {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 20px;
+    background: var(--bg-dark);
+    border: 1px solid var(--cyan);
+    border-radius: 8px;
+}
+
+.clock-label {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.clock-time {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    color: var(--cyan);
+    font-weight: 700;
+}
+
+/* Game Countdown */
+.game-countdown {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding: 8px 12px;
+    background: rgba(0, 240, 255, 0.1);
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+.countdown-label {
+    color: var(--text-secondary);
+}
+
+.countdown-time {
+    font-family: 'Orbitron', sans-serif;
+    color: var(--cyan);
+    font-weight: 600;
+}
+
+.game-countdown.urgent {
+    background: rgba(255, 170, 0, 0.15);
+    border: 1px solid var(--warning);
+    border-radius: 5px;
+}
+
+.countdown-time.urgent {
+    color: var(--warning);
+}
+
+.countdown-time.live {
+    color: var(--success);
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
 }
 
 /* Games List */
@@ -295,6 +367,75 @@ body.manager-mode .tab.manager-only {
 .game-opponent span {
     color: var(--text-secondary);
     font-weight: 400;
+}
+
+.game-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+}
+
+.game-league {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(139, 0, 255, 0.15);
+    border: 1px solid var(--purple);
+    border-radius: 15px;
+    font-size: 0.8rem;
+    color: var(--purple);
+    font-weight: 500;
+}
+
+.game-mode-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    background: rgba(0, 240, 255, 0.15);
+    border: 1px solid var(--cyan);
+    border-radius: 15px;
+    font-size: 0.8rem;
+    color: var(--cyan);
+    font-weight: 500;
+}
+
+/* Withdrawal and roster status badges */
+.on-roster-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 8px 15px;
+    background: rgba(0, 255, 136, 0.15);
+    border: 1px solid var(--success);
+    border-radius: 5px;
+    color: var(--success);
+    font-weight: 500;
+}
+
+.withdrawn-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 15px;
+    background: rgba(255, 170, 0, 0.15);
+    border: 1px solid var(--warning);
+    border-radius: 5px;
+    color: var(--warning);
+    font-weight: 500;
+}
+
+.withdrawal-badge {
+    background: rgba(255, 68, 68, 0.2);
+    color: var(--danger);
+    border: 1px solid var(--danger);
+}
+
+.btn-warning {
+    background: var(--warning);
+    color: var(--bg-dark);
+}
+
+.btn-warning:hover {
+    background: #cc8800;
+    transform: translateY(-2px);
 }
 
 .game-notes {
@@ -615,6 +756,240 @@ body.manager-mode .tab.manager-only {
     text-align: center;
 }
 
+/* Simplified Roster */
+.roster-teams {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-bottom: 30px;
+}
+
+@media (max-width: 768px) {
+    .roster-teams {
+        grid-template-columns: 1fr;
+    }
+}
+
+.roster-team-column h3 {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.2rem;
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--cyan);
+}
+
+.roster-simple-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.roster-simple-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    background: var(--bg-dark);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    transition: all 0.2s;
+}
+
+.roster-simple-item:hover {
+    background: var(--bg-card-hover);
+}
+
+.roster-simple-item .member-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 0.7rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.roster-simple-item .member-name {
+    flex: 1;
+    font-size: 0.85rem;
+}
+
+.roster-simple-item .member-year {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+}
+
+.vets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 8px;
+}
+
+/* Simplified Member Cards */
+.member-card-simple {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 6px 10px;
+    background: var(--bg-dark);
+    border-radius: 5px;
+    transition: all 0.2s;
+}
+
+.member-card-simple:hover {
+    background: var(--bg-card-hover);
+}
+
+.member-card-simple.vet-member {
+    opacity: 0.85;
+}
+
+.member-avatar-small {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    object-fit: cover;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+}
+
+.member-avatar-small.linked {
+    border-color: var(--cyan);
+}
+
+.member-name-small {
+    flex: 1;
+    font-size: 0.8rem;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.member-year-small {
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    margin-left: auto;
+}
+
+/* Account Modal */
+.account-section {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.account-section:last-of-type {
+    border-bottom: none;
+    margin-bottom: 15px;
+}
+
+.account-section h4 {
+    color: var(--cyan);
+    margin-bottom: 15px;
+    font-size: 1rem;
+}
+
+.status-toggle {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.toggle-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 15px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.toggle-option:hover {
+    border-color: var(--cyan);
+}
+
+.toggle-option input[type="radio"] {
+    margin-top: 3px;
+    accent-color: var(--cyan);
+}
+
+.toggle-option input[type="radio"]:checked + .toggle-label {
+    color: var(--cyan);
+}
+
+.toggle-label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.toggle-desc {
+    display: block;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+
+.account-note {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+    margin-top: 10px;
+}
+
+/* Form Inline Rows */
+.form-row-inline {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+@media (max-width: 500px) {
+    .form-row-inline {
+        grid-template-columns: 1fr;
+    }
+}
+
+.form-row select {
+    padding: 12px 15px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-size: 1rem;
+}
+
+.form-row select:focus {
+    outline: none;
+    border-color: var(--cyan);
+}
+
+/* League/Division Badge */
+.game-league-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    background: rgba(139, 0, 255, 0.2);
+    border: 1px solid var(--purple);
+    border-radius: 15px;
+    font-size: 0.75rem;
+    color: var(--purple);
+    font-weight: 500;
+}
+
 /* Manage Section */
 .manage-section {
     margin-bottom: 30px;
@@ -927,6 +1302,63 @@ body.manager-mode .tab.manager-only {
     font-size: 0.9rem;
 }
 
+/* Roster Checkbox Styles */
+.roster-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.roster-checkbox:hover {
+    border-color: var(--cyan);
+    background: var(--bg-card-hover);
+}
+
+.roster-checkbox.selected {
+    border-color: var(--success);
+    background: rgba(0, 255, 136, 0.1);
+}
+
+.roster-checkbox.sub {
+    opacity: 0.85;
+}
+
+.roster-checkbox input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--cyan);
+}
+
+.roster-checkbox .tag {
+    font-size: 0.7rem;
+    padding: 2px 6px;
+    border-radius: 3px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+}
+
+.roster-checkbox .tag.available {
+    background: rgba(0, 255, 136, 0.2);
+    color: var(--success);
+}
+
+.roster-counter {
+    text-align: center;
+    padding: 10px;
+    margin-bottom: 15px;
+    background: var(--bg-dark);
+    border-radius: 5px;
+    font-weight: 600;
+    border: 1px solid var(--border);
+}
+
 .player-select-item {
     display: flex;
     align-items: center;
@@ -977,6 +1409,52 @@ body.manager-mode .tab.manager-only {
 
 .roster-count.over {
     color: var(--danger);
+}
+
+/* Roster counter states */
+.roster-counter.roster-full {
+    color: var(--success);
+    border-color: var(--success);
+}
+
+.roster-counter.roster-over {
+    color: var(--danger);
+    border-color: var(--danger);
+}
+
+/* Withdrawn player styles in modal */
+.roster-checkbox.withdrawn {
+    opacity: 0.6;
+    border-color: var(--danger);
+}
+
+.roster-checkbox .tag.withdrawn {
+    background: rgba(255, 68, 68, 0.2);
+    color: var(--danger);
+}
+
+.withdrawn-section {
+    background: rgba(255, 68, 68, 0.1);
+    border: 1px solid var(--danger);
+    border-radius: 8px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+.withdrawn-section h4 {
+    color: var(--danger);
+    margin-bottom: 10px;
+}
+
+.withdrawn-player {
+    display: inline-block;
+    padding: 5px 12px;
+    background: rgba(255, 68, 68, 0.2);
+    border: 1px solid var(--danger);
+    border-radius: 15px;
+    color: var(--danger);
+    font-size: 0.85rem;
+    margin: 3px;
 }
 
 /* Footer */

@@ -84,7 +84,9 @@ async function checkAuth() {
                 displayName: data.displayName,
                 avatar: data.avatar,
                 isManager: data.isManager,
-                playerId: data.playerId
+                playerId: data.playerId,
+                email: data.email || '',
+                phone: data.phone || ''
             };
             state.isManager = data.isManager;
             state.currentPlayer = data.playerId || null;
@@ -264,6 +266,24 @@ async function updateRosterAPI(gameId, roster) {
     }
 }
 
+async function withdrawFromRosterAPI(gameId) {
+    try {
+        const response = await fetch(`${API_BASE}/games/${gameId}/withdraw`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to withdraw from roster');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to withdraw from roster:', error);
+        showError(error.message);
+        return null;
+    }
+}
+
 async function setPlayerPreferenceAPI(playerId, preference) {
     try {
         const response = await fetch(`${API_BASE}/preferences/${playerId}`, {
@@ -357,10 +377,12 @@ function updateAuthUI() {
         managerTab.style.display = state.isManager ? 'inline-block' : 'none';
 
         // Show linked player or prompt to link
+        const myAccountBtn = document.getElementById('myAccountBtn');
         if (state.currentPlayer) {
             const member = allMembers.find(m => m.id === state.currentPlayer);
             linkedPlayer.textContent = member ? `Playing as: ${member.name}` : '';
             playerPreference.style.display = 'flex';
+            if (myAccountBtn) myAccountBtn.style.display = 'inline-block';
 
             // Set current preference
             const roleSelect = document.getElementById('rolePreference');
@@ -368,6 +390,7 @@ function updateAuthUI() {
         } else {
             linkedPlayer.innerHTML = '<a href="#" onclick="showLinkModal(); return false;">Link your player profile</a>';
             playerPreference.style.display = 'none';
+            if (myAccountBtn) myAccountBtn.style.display = 'none';
         }
     } else {
         loginSection.style.display = 'flex';
@@ -477,24 +500,46 @@ function renderGameCard(game) {
     const isOnRoster = game.roster?.includes(state.currentPlayer);
     const isAvailable = game.available?.includes(state.currentPlayer);
     const isUnavailable = game.unavailable?.includes(state.currentPlayer);
+    const hasWithdrawn = game.withdrawals?.includes(state.currentPlayer);
 
     const availableCount = game.available?.length || 0;
     const rosterCount = game.roster?.length || 0;
+    const teamSize = game.teamSize || 10;
+    const needsPlayers = rosterCount < teamSize;
+    const withdrawalCount = game.withdrawals?.length || 0;
 
     let availabilityButtons = '';
     if (state.user && state.currentPlayer) {
-        availabilityButtons = `
-            <div class="availability-buttons">
-                <button class="btn btn-available ${isAvailable ? 'active' : ''}"
-                        onclick="setAvailability('${game.id}', true)">
-                    I Can Play
-                </button>
-                <button class="btn btn-unavailable ${isUnavailable ? 'active' : ''}"
-                        onclick="setAvailability('${game.id}', false)">
-                    Can't Make It
-                </button>
-            </div>
-        `;
+        if (isOnRoster) {
+            // Show withdraw button if on roster
+            availabilityButtons = `
+                <div class="availability-buttons">
+                    <span class="on-roster-badge">✓ You're on the roster!</span>
+                    <button class="btn btn-warning" onclick="withdrawFromRoster('${game.id}')">
+                        I Need a Sub
+                    </button>
+                </div>
+            `;
+        } else if (hasWithdrawn) {
+            availabilityButtons = `
+                <div class="availability-buttons">
+                    <span class="withdrawn-badge">You requested a sub for this game</span>
+                </div>
+            `;
+        } else {
+            availabilityButtons = `
+                <div class="availability-buttons">
+                    <button class="btn btn-available ${isAvailable ? 'active' : ''}"
+                            onclick="setAvailability('${game.id}', true)">
+                        I Can Play
+                    </button>
+                    <button class="btn btn-unavailable ${isUnavailable ? 'active' : ''}"
+                            onclick="setAvailability('${game.id}', false)">
+                        Can't Make It
+                    </button>
+                </div>
+            `;
+        }
     } else if (!state.user) {
         availabilityButtons = '<p class="login-prompt">Login to mark availability</p>';
     } else {
@@ -514,18 +559,38 @@ function renderGameCard(game) {
         return `<span class="roster-chip">${getMemberName(id)}</span>`;
     }).join('');
 
+    // Calculate countdown
+    const countdown = getGameCountdown(game.date, game.time);
+    const countdownClass = countdown.urgent ? 'urgent' : '';
+
+    // Game mode badge (always show)
+    const gameMode = game.gameMode || 'War';
+    const gameModeDisplay = `<span class="game-mode-badge">${gameMode}</span>`;
+
+    // Status badges
+    const rosterStatusClass = needsPlayers ? 'status-need-players' : 'status-ready';
+
     return `
         <div class="game-card ${isOnRoster ? 'on-roster' : ''}">
             <div class="game-header">
                 <div class="game-date">${formatDate(game.date)}</div>
+                <div class="game-countdown ${countdownClass}">
+                    <span class="countdown-label">Starts in:</span>
+                    <span class="countdown-time ${countdownClass}">${countdown.text}</span>
+                </div>
                 <div class="game-time">${formatTime(game.time)}</div>
             </div>
             <div class="game-opponent">vs ${game.opponent}</div>
+            <div class="game-meta">
+                ${game.league ? `<span class="game-league">${game.league}${game.division ? ` - ${game.division}` : ''}</span>` : ''}
+                ${gameModeDisplay}
+            </div>
             ${game.notes ? `<div class="game-notes">${game.notes}</div>` : ''}
 
             <div class="game-status">
-                <span class="status-badge">Roster: ${rosterCount}/10</span>
+                <span class="status-badge ${rosterStatusClass}">Roster: ${rosterCount}/${teamSize}</span>
                 <span class="status-badge available-badge">${availableCount} Available</span>
+                ${withdrawalCount > 0 && state.isManager ? `<span class="status-badge withdrawal-badge">${withdrawalCount} Need${withdrawalCount > 1 ? '' : 's'} Sub</span>` : ''}
             </div>
 
             ${availabilityButtons}
@@ -555,39 +620,46 @@ function renderGameCard(game) {
 }
 
 function renderRoster() {
-    const naStartersContainer = document.getElementById('naStarters');
-    const naSubsContainer = document.getElementById('naSubs');
-    const euStartersContainer = document.getElementById('euStarters');
-    const euSubsContainer = document.getElementById('euSubs');
+    const naPlayersContainer = document.getElementById('naPlayers');
+    const euPlayersContainer = document.getElementById('euPlayers');
     const vetsContainer = document.getElementById('vetsRoster');
 
-    if (!naStartersContainer) return;
+    if (!naPlayersContainer) return;
 
-    // Sort alphabetically
-    const sortAlpha = (a, b) => a.name.localeCompare(b.name);
+    // Sort by year joined (oldest first)
+    const sortByYear = (a, b) => a.year - b.year;
 
     // Active members (not retired/vets)
-    const active = activeMembers.slice().sort(sortAlpha);
+    const active = activeMembers.slice().sort(sortByYear);
 
     // Vets (substitute members are considered "vets" or retired)
-    const vets = subMembers.slice().sort(sortAlpha);
+    const vets = subMembers.slice().sort(sortByYear);
 
     // Split active by region
-    const naMembers = active.filter(m => !m.region || m.region === 'NA');
-    const euMembers = active.filter(m => m.region === 'EU');
+    const naPlayers = active.filter(m => !m.region || m.region === 'NA');
+    const euPlayers = active.filter(m => m.region === 'EU');
 
-    // Split by preference (starter vs sub)
-    const naStarters = naMembers.filter(m => state.playerPreferences[m.id] !== 'sub');
-    const naSubs = naMembers.filter(m => state.playerPreferences[m.id] === 'sub');
-    const euStarters = euMembers.filter(m => state.playerPreferences[m.id] !== 'sub');
-    const euSubs = euMembers.filter(m => state.playerPreferences[m.id] === 'sub');
+    // Render each section (simplified - no starter/sub distinction)
+    naPlayersContainer.innerHTML = naPlayers.map(m => renderSimpleMemberCard(m)).join('') || '<p class="empty-list">No NA players</p>';
+    euPlayersContainer.innerHTML = euPlayers.map(m => renderSimpleMemberCard(m)).join('') || '<p class="empty-list">No EU players</p>';
+    vetsContainer.innerHTML = vets.map(m => renderSimpleMemberCard(m, true)).join('') || '<p class="empty-list">No vets</p>';
+}
 
-    // Render each section
-    naStartersContainer.innerHTML = naStarters.map(m => renderMemberCard(m, false)).join('') || '<p class="empty-list">No starters</p>';
-    naSubsContainer.innerHTML = naSubs.map(m => renderMemberCard(m, false)).join('') || '<p class="empty-list">No subs</p>';
-    euStartersContainer.innerHTML = euStarters.map(m => renderMemberCard(m, false)).join('') || '<p class="empty-list">No starters</p>';
-    euSubsContainer.innerHTML = euSubs.map(m => renderMemberCard(m, false)).join('') || '<p class="empty-list">No subs</p>';
-    vetsContainer.innerHTML = vets.map(m => renderMemberCard(m, true)).join('') || '<p class="empty-list">No vets</p>';
+function renderSimpleMemberCard(member, isVet = false) {
+    const linkedUser = state.linkedUsers ? state.linkedUsers[member.id] : null;
+    const avatarUrl = linkedUser?.avatar || '';
+    const hasAvatar = avatarUrl && avatarUrl.length > 0;
+
+    return `
+        <div class="member-card-simple ${isVet ? 'vet-member' : ''}" data-member-id="${member.id}">
+            ${hasAvatar
+                ? `<img class="member-avatar-small linked" src="${avatarUrl}" alt="" onerror="this.style.display='none'">`
+                : `<div class="member-avatar-small">${member.name.charAt(0).toUpperCase()}</div>`
+            }
+            <span class="member-name-small">${member.name}</span>
+            <span class="member-year-small">${member.year}</span>
+        </div>
+    `;
 }
 
 function renderMemberCard(member, isVet = false) {
@@ -730,6 +802,26 @@ async function deleteGame(gameId) {
     }
 }
 
+async function withdrawFromRoster(gameId) {
+    if (!confirm('Need a sub? This will remove you from the roster and notify managers to find a replacement.')) {
+        return;
+    }
+
+    const result = await withdrawFromRosterAPI(gameId);
+    if (result) {
+        // Update local state
+        const game = state.games.find(g => g.id === gameId);
+        if (game) {
+            game.roster = result.roster;
+            game.withdrawals = result.withdrawals;
+            game.available = result.available;
+            game.unavailable = result.unavailable;
+            renderGames();
+        }
+        alert('Managers have been notified to find a sub for you.');
+    }
+}
+
 async function postToDiscord(gameId) {
     try {
         await postToDiscordAPI(gameId);
@@ -747,17 +839,21 @@ function openRosterModal(gameId) {
     if (!game) return;
 
     const currentRoster = game.roster || [];
+    const teamSize = game.teamSize || 10;
+    const withdrawals = game.withdrawals || [];
 
     const renderPlayerCheckbox = (member, isAvailable, isSub = false) => {
         const isSelected = currentRoster.includes(member.id);
+        const hasWithdrawn = withdrawals.includes(member.id);
         const pref = state.playerPreferences[member.id];
         return `
-            <label class="roster-checkbox ${isSelected ? 'selected' : ''} ${isSub ? 'sub' : ''}">
+            <label class="roster-checkbox ${isSelected ? 'selected' : ''} ${isSub ? 'sub' : ''} ${hasWithdrawn ? 'withdrawn' : ''}">
                 <input type="checkbox" value="${member.id}" ${isSelected ? 'checked' : ''}>
                 <span>${member.name}</span>
                 ${member.region ? `<span class="tag">[${member.region}]</span>` : ''}
                 ${pref === 'sub' ? '<span class="tag">(sub)</span>' : ''}
                 ${isAvailable ? '<span class="tag available">Available</span>' : ''}
+                ${hasWithdrawn ? '<span class="tag withdrawn">Needs Sub</span>' : ''}
             </label>
         `;
     };
@@ -767,20 +863,33 @@ function openRosterModal(gameId) {
     const otherActive = activeMembers.filter(m => !game.available?.includes(m.id));
     const otherSubs = subMembers.filter(m => !game.available?.includes(m.id));
 
+    // Show players needing subs section if any
+    const withdrawnPlayers = allMembers.filter(m => withdrawals.includes(m.id));
+    const withdrawnSection = withdrawnPlayers.length > 0 ? `
+        <div class="roster-section withdrawn-section">
+            <h4>⚠️ Need Subs (${withdrawnPlayers.length})</h4>
+            <div class="roster-list">
+                ${withdrawnPlayers.map(m => `<span class="withdrawn-player">${m.name}</span>`).join('')}
+            </div>
+        </div>
+    ` : '';
+
     content.innerHTML = `
-        <div class="roster-counter">Selected: <span id="rosterCount">${currentRoster.length}</span>/10</div>
+        <div class="roster-counter">Selected: <span id="rosterCount">${currentRoster.length}</span>/${teamSize}</div>
+
+        ${withdrawnSection}
 
         <div class="roster-section">
             <h4>Available Starters</h4>
             <div class="roster-list">
-                ${availableActive.map(m => renderPlayerCheckbox(m, true)).join('')}
+                ${availableActive.map(m => renderPlayerCheckbox(m, true)).join('') || '<p class="empty-list">None</p>'}
             </div>
         </div>
 
         <div class="roster-section">
             <h4>Available Subs</h4>
             <div class="roster-list">
-                ${availableSubs.map(m => renderPlayerCheckbox(m, true, true)).join('')}
+                ${availableSubs.map(m => renderPlayerCheckbox(m, true, true)).join('') || '<p class="empty-list">None</p>'}
             </div>
         </div>
 
@@ -795,6 +904,9 @@ function openRosterModal(gameId) {
         <button class="btn btn-primary" onclick="saveRoster('${gameId}')">Save Roster</button>
     `;
 
+    // Store team size for count validation
+    content.dataset.teamSize = teamSize;
+
     // Add change listener for counter
     content.querySelectorAll('input[type="checkbox"]').forEach(cb => {
         cb.addEventListener('change', updateRosterCount);
@@ -806,7 +918,22 @@ function openRosterModal(gameId) {
 function updateRosterCount() {
     const count = document.querySelectorAll('#rosterModalContent input[type="checkbox"]:checked').length;
     const counter = document.getElementById('rosterCount');
-    if (counter) counter.textContent = count;
+    const content = document.getElementById('rosterModalContent');
+    const teamSize = parseInt(content?.dataset.teamSize) || 10;
+
+    if (counter) {
+        counter.textContent = count;
+        // Add visual feedback if over/under team size
+        const counterParent = counter.parentElement;
+        if (counterParent) {
+            counterParent.classList.remove('roster-full', 'roster-over');
+            if (count === teamSize) {
+                counterParent.classList.add('roster-full');
+            } else if (count > teamSize) {
+                counterParent.classList.add('roster-over');
+            }
+        }
+    }
 }
 
 async function saveRoster(gameId) {
@@ -1063,6 +1190,137 @@ async function saveRosterOrderAPI(type, order) {
     }
 }
 
+// ==================== ET CLOCK & COUNTDOWN ====================
+
+function startETClock() {
+    updateETClock();
+    setInterval(updateETClock, 1000);
+}
+
+function updateETClock() {
+    const clockEl = document.getElementById('etClock');
+    if (!clockEl) return;
+
+    const now = new Date();
+    const etTime = now.toLocaleString('en-US', {
+        timeZone: 'America/New_York',
+        hour: 'numeric',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true
+    });
+    clockEl.textContent = etTime;
+}
+
+function getGameCountdown(dateStr, timeStr) {
+    const gameDateTime = new Date(`${dateStr}T${timeStr}:00`);
+    // Adjust for ET timezone
+    const etOffset = getETOffset();
+    gameDateTime.setHours(gameDateTime.getHours() - etOffset);
+
+    const now = new Date();
+    const diff = gameDateTime - now;
+
+    if (diff <= 0) {
+        return { text: 'Game time!', urgent: true };
+    }
+
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (days > 0) {
+        return { text: `${days}d ${hours}h`, urgent: false };
+    } else if (hours > 0) {
+        return { text: `${hours}h ${minutes}m`, urgent: hours < 2 };
+    } else {
+        return { text: `${minutes}m`, urgent: true };
+    }
+}
+
+function getETOffset() {
+    // Get current ET offset from UTC (handles DST)
+    const now = new Date();
+    const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const et = new Date(utc + (-5 * 3600000)); // EST is UTC-5
+    // Check if DST
+    const jan = new Date(now.getFullYear(), 0, 1);
+    const jul = new Date(now.getFullYear(), 6, 1);
+    const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+    const isDST = now.getTimezoneOffset() < stdOffset;
+    return isDST ? -4 : -5; // EDT is UTC-4, EST is UTC-5
+}
+
+// ==================== MY ACCOUNT ====================
+
+function showMyAccount() {
+    const modal = document.getElementById('accountModal');
+    if (!modal || !state.user) return;
+
+    // Set current status
+    const member = allMembers.find(m => m.id === state.currentPlayer);
+    const isVet = member?.type === 'sub';
+
+    document.getElementById('statusActive').checked = !isVet;
+    document.getElementById('statusRetired').checked = isVet;
+
+    // Load saved email/phone (from user object if available)
+    document.getElementById('accountEmail').value = state.user.email || '';
+    document.getElementById('accountPhone').value = state.user.phone || '';
+
+    modal.classList.add('active');
+
+    // Add auto-save listener for status toggle
+    document.querySelectorAll('input[name="playerStatus"]').forEach(radio => {
+        radio.addEventListener('change', handleStatusChange);
+    });
+}
+
+async function handleStatusChange(e) {
+    const retire = e.target.value === 'retired';
+    if (state.currentPlayer) {
+        const result = await updateMemberAPI(state.currentPlayer, { isSub: retire });
+        if (result) {
+            await fetchData();
+            renderAll();
+            // Show brief feedback
+            const label = e.target.parentElement.querySelector('.toggle-label');
+            if (label) {
+                const original = label.textContent;
+                label.textContent = 'Saved!';
+                setTimeout(() => label.textContent = original, 1500);
+            }
+        }
+    }
+}
+
+async function saveAccountSettings() {
+    const email = document.getElementById('accountEmail').value.trim();
+    const phone = document.getElementById('accountPhone').value.trim();
+
+    // Save to user profile
+    try {
+        const response = await fetch(`${AUTH_BASE}/account`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ email, phone })
+        });
+
+        if (response.ok) {
+            state.user.email = email;
+            state.user.phone = phone;
+            document.getElementById('accountModal').classList.remove('active');
+            alert('Settings saved!');
+        } else {
+            showError('Failed to save settings');
+        }
+    } catch (error) {
+        console.error('Error saving account settings:', error);
+        showError('Failed to save settings');
+    }
+}
+
 // ==================== HELP TAB ====================
 
 function initHelpToggle() {
@@ -1104,6 +1362,10 @@ function initEventHandlers() {
                 date: document.getElementById('gameDate').value,
                 time: document.getElementById('gameTime').value,
                 opponent: document.getElementById('opponent').value,
+                league: document.getElementById('gameLeague')?.value || '',
+                division: document.getElementById('gameDivision')?.value || '',
+                gameMode: document.getElementById('gameMode')?.value || 'War',
+                teamSize: parseInt(document.getElementById('teamSize')?.value) || 10,
                 notes: document.getElementById('gameNotes').value
             };
 
@@ -1111,6 +1373,10 @@ function initEventHandlers() {
             if (game) {
                 state.games.push(game);
                 createForm.reset();
+                // Reset team size to default
+                if (document.getElementById('teamSize')) {
+                    document.getElementById('teamSize').value = '10';
+                }
                 renderAll();
             }
         });
@@ -1188,6 +1454,9 @@ function initEventHandlers() {
 // ==================== INITIALIZATION ====================
 
 async function init() {
+    // Start the ET clock
+    startETClock();
+
     // Check authentication
     const isAuthenticated = await checkAuth();
     updateAuthUI();
@@ -1211,11 +1480,16 @@ async function init() {
     // Set up event handlers
     initEventHandlers();
 
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 30 seconds (also updates countdown timers)
     setInterval(async () => {
         await fetchData();
         renderAll();
     }, 30000);
+
+    // Update countdowns every minute
+    setInterval(() => {
+        renderGames();
+    }, 60000);
 }
 
 // Start the app

@@ -38,10 +38,15 @@ type Game struct {
 	Date        string   `json:"date"`
 	Time        string   `json:"time"`
 	Opponent    string   `json:"opponent"`
+	League      string   `json:"league,omitempty"`
+	Division    string   `json:"division,omitempty"`
+	GameMode    string   `json:"gameMode,omitempty"`
+	TeamSize    int      `json:"teamSize"`
 	Notes       string   `json:"notes"`
 	Available   []string `json:"available"`
 	Unavailable []string `json:"unavailable"`
 	Roster      []string `json:"roster"`
+	Withdrawals []string `json:"withdrawals"`
 	Reminded    bool     `json:"reminded"`
 }
 
@@ -52,6 +57,8 @@ type User struct {
 	Avatar      string `json:"avatar"`
 	PlayerID    string `json:"playerId"`
 	IsManager   bool   `json:"isManager"`
+	Email       string `json:"email,omitempty"`
+	Phone       string `json:"phone,omitempty"`
 }
 
 type AllData struct {
@@ -168,6 +175,14 @@ func initDB() error {
 
 	// Add reminded column if it doesn't exist
 	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS reminded BOOLEAN DEFAULT FALSE`)
+	// Add league and division columns
+	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS league TEXT DEFAULT ''`)
+	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS division TEXT DEFAULT ''`)
+	// Add game mode and team size columns
+	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS game_mode TEXT DEFAULT 'War'`)
+	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS team_size INTEGER DEFAULT 10`)
+	// Add withdrawals column for tracking players who pulled out
+	db.Exec(`ALTER TABLE games ADD COLUMN IF NOT EXISTS withdrawals TEXT DEFAULT '[]'`)
 
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS player_preferences (
@@ -204,6 +219,9 @@ func initDB() error {
 	if err != nil {
 		return fmt.Errorf("failed to create users table: %v", err)
 	}
+	// Add email and phone columns for notifications
+	db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT DEFAULT ''`)
+	db.Exec(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT DEFAULT ''`)
 
 	// Members table for roster management
 	_, err = db.Exec(`
@@ -510,11 +528,11 @@ func getUserByDiscordID(discordID string) (*User, error) {
 	}
 
 	var u User
-	var playerID, displayName, avatar sql.NullString
+	var playerID, displayName, avatar, email, phone sql.NullString
 	err := db.QueryRow(`
-		SELECT discord_id, username, display_name, avatar, player_id, is_manager
+		SELECT discord_id, username, display_name, avatar, player_id, is_manager, COALESCE(email, ''), COALESCE(phone, '')
 		FROM users WHERE discord_id = $1
-	`, discordID).Scan(&u.DiscordID, &u.Username, &displayName, &avatar, &playerID, &u.IsManager)
+	`, discordID).Scan(&u.DiscordID, &u.Username, &displayName, &avatar, &playerID, &u.IsManager, &email, &phone)
 
 	if err == sql.ErrNoRows {
 		return nil, nil
@@ -526,6 +544,8 @@ func getUserByDiscordID(discordID string) (*User, error) {
 	u.DisplayName = displayName.String
 	u.Avatar = avatar.String
 	u.PlayerID = playerID.String
+	u.Email = email.String
+	u.Phone = phone.String
 
 	return &u, nil
 }
@@ -677,7 +697,9 @@ func getAllGames() ([]Game, error) {
 		return []Game{}, nil
 	}
 
-	rows, err := db.Query("SELECT id, date, time, opponent, notes, available, unavailable, roster, COALESCE(reminded, false) FROM games ORDER BY date, time")
+	rows, err := db.Query(`SELECT id, date, time, opponent, COALESCE(league, ''), COALESCE(division, ''),
+		COALESCE(game_mode, 'War'), COALESCE(team_size, 10), notes, available, unavailable, roster,
+		COALESCE(withdrawals, '[]'), COALESCE(reminded, false) FROM games ORDER BY date, time`)
 	if err != nil {
 		return nil, err
 	}
@@ -686,13 +708,14 @@ func getAllGames() ([]Game, error) {
 	var games []Game
 	for rows.Next() {
 		var g Game
-		var available, unavailable, roster string
-		if err := rows.Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.Notes, &available, &unavailable, &roster, &g.Reminded); err != nil {
+		var available, unavailable, roster, withdrawals string
+		if err := rows.Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &withdrawals, &g.Reminded); err != nil {
 			return nil, err
 		}
 		g.Available = parseJSONArray(available)
 		g.Unavailable = parseJSONArray(unavailable)
 		g.Roster = parseJSONArray(roster)
+		g.Withdrawals = parseJSONArray(withdrawals)
 		games = append(games, g)
 	}
 
@@ -708,9 +731,11 @@ func getGameByID(gameID string) (*Game, error) {
 	}
 
 	var g Game
-	var available, unavailable, roster string
-	err := db.QueryRow("SELECT id, date, time, opponent, notes, available, unavailable, roster, COALESCE(reminded, false) FROM games WHERE id = $1", gameID).
-		Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.Notes, &available, &unavailable, &roster, &g.Reminded)
+	var available, unavailable, roster, withdrawals string
+	err := db.QueryRow(`SELECT id, date, time, opponent, COALESCE(league, ''), COALESCE(division, ''),
+		COALESCE(game_mode, 'War'), COALESCE(team_size, 10), notes, available, unavailable, roster,
+		COALESCE(withdrawals, '[]'), COALESCE(reminded, false) FROM games WHERE id = $1`, gameID).
+		Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &withdrawals, &g.Reminded)
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
@@ -721,18 +746,27 @@ func getGameByID(gameID string) (*Game, error) {
 	g.Available = parseJSONArray(available)
 	g.Unavailable = parseJSONArray(unavailable)
 	g.Roster = parseJSONArray(roster)
+	g.Withdrawals = parseJSONArray(withdrawals)
 	return &g, nil
 }
 
-func createGame(date, gameTime, opponent, notes string) (*Game, error) {
+func createGame(date, gameTime, opponent, league, division, gameMode string, teamSize int, notes string) (*Game, error) {
 	if db == nil {
 		return nil, fmt.Errorf("database not connected")
 	}
 
+	if gameMode == "" {
+		gameMode = "War"
+	}
+	if teamSize <= 0 {
+		teamSize = 10
+	}
+
 	gameID := generateGameID()
 	_, err := db.Exec(
-		"INSERT INTO games (id, date, time, opponent, notes, available, unavailable, roster, reminded) VALUES ($1, $2, $3, $4, $5, '[]', '[]', '[]', false)",
-		gameID, date, gameTime, opponent, notes,
+		`INSERT INTO games (id, date, time, opponent, league, division, game_mode, team_size, notes, available, unavailable, roster, withdrawals, reminded)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, '[]', '[]', '[]', '[]', false)`,
+		gameID, date, gameTime, opponent, league, division, gameMode, teamSize, notes,
 	)
 	if err != nil {
 		return nil, err
@@ -922,7 +956,7 @@ func handleAuthMe(w http.ResponseWriter, r *http.Request) {
 	// Get full user from DB
 	user, _ := getUserByDiscordID(session.DiscordID)
 
-	writeJSON(w, http.StatusOK, map[string]interface{}{
+	response := map[string]interface{}{
 		"authenticated": true,
 		"discordId":     session.DiscordID,
 		"username":      session.Username,
@@ -930,7 +964,15 @@ func handleAuthMe(w http.ResponseWriter, r *http.Request) {
 		"playerId":      session.PlayerID,
 		"avatar":        getUserAvatar(user),
 		"displayName":   getUserDisplayName(user),
-	})
+	}
+
+	// Include email and phone if available
+	if user != nil {
+		response["email"] = user.Email
+		response["phone"] = user.Phone
+	}
+
+	writeJSON(w, http.StatusOK, response)
 }
 
 func handleLogout(w http.ResponseWriter, r *http.Request) {
@@ -974,6 +1016,37 @@ func handleLinkPlayer(w http.ResponseWriter, r *http.Request) {
 	// Update session cookie with new player ID
 	session.PlayerID = body.PlayerID
 	setSessionCookie(w, *session)
+
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func handleUpdateAccount(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil {
+		writeError(w, http.StatusUnauthorized, "Not authenticated")
+		return
+	}
+
+	var body struct {
+		Email string `json:"email"`
+		Phone string `json:"phone"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	if db == nil {
+		writeError(w, http.StatusInternalServerError, "Database not connected")
+		return
+	}
+
+	_, err := db.Exec(`UPDATE users SET email = $1, phone = $2 WHERE discord_id = $3`,
+		body.Email, body.Phone, session.DiscordID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to update account")
+		return
+	}
 
 	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
@@ -1284,6 +1357,10 @@ func handleCreateGame(w http.ResponseWriter, r *http.Request) {
 		Date     string `json:"date"`
 		Time     string `json:"time"`
 		Opponent string `json:"opponent"`
+		League   string `json:"league"`
+		Division string `json:"division"`
+		GameMode string `json:"gameMode"`
+		TeamSize int    `json:"teamSize"`
 		Notes    string `json:"notes"`
 	}
 
@@ -1297,7 +1374,7 @@ func handleCreateGame(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	game, err := createGame(body.Date, body.Time, body.Opponent, body.Notes)
+	game, err := createGame(body.Date, body.Time, body.Opponent, body.League, body.Division, body.GameMode, body.TeamSize, body.Notes)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, err.Error())
 		return
@@ -1427,6 +1504,167 @@ func handleSetAvailability(w http.ResponseWriter, r *http.Request) {
 	}
 
 	writeJSON(w, http.StatusOK, updated)
+}
+
+func handleWithdrawFromRoster(w http.ResponseWriter, r *http.Request) {
+	vars := mux.Vars(r)
+	gameID := vars["id"]
+
+	session := getSessionFromRequest(r)
+	if session == nil || session.PlayerID == "" {
+		writeError(w, http.StatusUnauthorized, "Must be logged in with linked player")
+		return
+	}
+
+	game, err := getGameByID(gameID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if game == nil {
+		writeError(w, http.StatusNotFound, "Game not found")
+		return
+	}
+
+	// Check if player is on roster
+	isOnRoster := false
+	newRoster := make([]string, 0)
+	for _, p := range game.Roster {
+		if p == session.PlayerID {
+			isOnRoster = true
+		} else {
+			newRoster = append(newRoster, p)
+		}
+	}
+
+	if !isOnRoster {
+		writeError(w, http.StatusBadRequest, "You are not on this roster")
+		return
+	}
+
+	// Add to withdrawals list (if not already there)
+	withdrawals := game.Withdrawals
+	alreadyWithdrawn := false
+	for _, w := range withdrawals {
+		if w == session.PlayerID {
+			alreadyWithdrawn = true
+			break
+		}
+	}
+	if !alreadyWithdrawn {
+		withdrawals = append(withdrawals, session.PlayerID)
+	}
+
+	// Also mark as unavailable
+	unavailable := game.Unavailable
+	isAlreadyUnavailable := false
+	for _, p := range unavailable {
+		if p == session.PlayerID {
+			isAlreadyUnavailable = true
+			break
+		}
+	}
+	if !isAlreadyUnavailable {
+		unavailable = append(unavailable, session.PlayerID)
+	}
+
+	// Remove from available
+	available := make([]string, 0)
+	for _, p := range game.Available {
+		if p != session.PlayerID {
+			available = append(available, p)
+		}
+	}
+
+	updated, err := updateGame(gameID, map[string]interface{}{
+		"roster":      newRoster,
+		"withdrawals": withdrawals,
+		"available":   available,
+		"unavailable": unavailable,
+	})
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Send notification to managers via Discord
+	go notifyManagersOfWithdrawal(game, session.PlayerID)
+
+	writeJSON(w, http.StatusOK, updated)
+}
+
+func notifyManagersOfWithdrawal(game *Game, playerID string) {
+	if discordBotToken == "" || discordGuildID == "" {
+		return
+	}
+
+	playerName := getMemberName(playerID)
+
+	// Get all managers from users table
+	if db == nil {
+		return
+	}
+
+	rows, err := db.Query(`SELECT discord_id FROM users WHERE is_manager = true`)
+	if err != nil {
+		log.Printf("Error fetching managers for withdrawal notification: %v", err)
+		return
+	}
+	defer rows.Close()
+
+	message := fmt.Sprintf("⚠️ **Sub Needed**\n\n**%s** needs a sub for:\n📅 %s at %s\n⚔️ vs %s\n\nPlease find a replacement.",
+		playerName, game.Date, game.Time, game.Opponent)
+
+	for rows.Next() {
+		var discordID string
+		if err := rows.Scan(&discordID); err != nil {
+			continue
+		}
+		sendDiscordDM(discordID, message)
+	}
+}
+
+func sendDiscordDM(userID, message string) error {
+	if discordBotToken == "" {
+		return fmt.Errorf("bot token not configured")
+	}
+
+	// Create DM channel
+	dmPayload := map[string]string{"recipient_id": userID}
+	dmBytes, _ := json.Marshal(dmPayload)
+
+	req, _ := http.NewRequest("POST", "https://discord.com/api/users/@me/channels", bytes.NewReader(dmBytes))
+	req.Header.Set("Authorization", "Bot "+discordBotToken)
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	var channel struct {
+		ID string `json:"id"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&channel); err != nil {
+		return err
+	}
+
+	// Send message to DM channel
+	msgPayload := map[string]string{"content": message}
+	msgBytes, _ := json.Marshal(msgPayload)
+
+	msgReq, _ := http.NewRequest("POST", "https://discord.com/api/channels/"+channel.ID+"/messages", bytes.NewReader(msgBytes))
+	msgReq.Header.Set("Authorization", "Bot "+discordBotToken)
+	msgReq.Header.Set("Content-Type", "application/json")
+
+	msgResp, err := http.DefaultClient.Do(msgReq)
+	if err != nil {
+		return err
+	}
+	defer msgResp.Body.Close()
+
+	return nil
 }
 
 func handleGetPreferences(w http.ResponseWriter, r *http.Request) {
@@ -1622,7 +1860,9 @@ func handleGetPendingReminders(w http.ResponseWriter, r *http.Request) {
 	tomorrow := time.Now().Add(24 * time.Hour).Format("2006-01-02")
 
 	rows, err := db.Query(`
-		SELECT id, date, time, opponent, notes, available, unavailable, roster, COALESCE(reminded, false)
+		SELECT id, date, time, opponent, COALESCE(league, ''), COALESCE(division, ''),
+		COALESCE(game_mode, 'War'), COALESCE(team_size, 10), notes, available, unavailable, roster,
+		COALESCE(withdrawals, '[]'), COALESCE(reminded, false)
 		FROM games
 		WHERE date = $1 AND (reminded = false OR reminded IS NULL) AND roster != '[]'
 	`, tomorrow)
@@ -1635,13 +1875,14 @@ func handleGetPendingReminders(w http.ResponseWriter, r *http.Request) {
 	var games []Game
 	for rows.Next() {
 		var g Game
-		var available, unavailable, roster string
-		if err := rows.Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.Notes, &available, &unavailable, &roster, &g.Reminded); err != nil {
+		var available, unavailable, roster, withdrawals string
+		if err := rows.Scan(&g.ID, &g.Date, &g.Time, &g.Opponent, &g.League, &g.Division, &g.GameMode, &g.TeamSize, &g.Notes, &available, &unavailable, &roster, &withdrawals, &g.Reminded); err != nil {
 			continue
 		}
 		g.Available = parseJSONArray(available)
 		g.Unavailable = parseJSONArray(unavailable)
 		g.Roster = parseJSONArray(roster)
+		g.Withdrawals = parseJSONArray(withdrawals)
 		games = append(games, g)
 	}
 
@@ -1728,6 +1969,7 @@ func main() {
 	r.HandleFunc("/auth/me", handleAuthMe).Methods("GET")
 	r.HandleFunc("/auth/logout", handleLogout).Methods("POST")
 	r.HandleFunc("/auth/link", handleLinkPlayer).Methods("POST")
+	r.HandleFunc("/auth/account", handleUpdateAccount).Methods("PUT")
 
 	// API routes
 	r.HandleFunc("/api/data", handleGetAllData).Methods("GET")
@@ -1741,6 +1983,7 @@ func main() {
 	r.HandleFunc("/api/games/{id}", handleDeleteGame).Methods("DELETE")
 	r.HandleFunc("/api/games/{id}/roster", handleUpdateRoster).Methods("PUT")
 	r.HandleFunc("/api/games/{id}/availability", handleSetAvailability).Methods("POST")
+	r.HandleFunc("/api/games/{id}/withdraw", handleWithdrawFromRoster).Methods("POST")
 	r.HandleFunc("/api/preferences", handleGetPreferences).Methods("GET")
 	r.HandleFunc("/api/preferences/{playerId}", handleSetPreference).Methods("PUT")
 	r.HandleFunc("/api/webhook", handleGetWebhook).Methods("GET")
