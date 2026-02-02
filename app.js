@@ -1676,7 +1676,6 @@ function updateETClock() {
         timeZone: 'America/New_York',
         hour: 'numeric',
         minute: '2-digit',
-        second: '2-digit',
         hour12: true
     });
     clockEl.textContent = etTime;
