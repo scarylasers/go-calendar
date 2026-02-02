@@ -2052,6 +2052,7 @@ async function init() {
     await fetchData();
     await fetchLeagues();
     await fetchDivisions();
+    updateAuthUI(); // Update again after preferences are loaded
     renderAll();
 
     // Set up event handlers
