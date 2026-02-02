@@ -1438,11 +1438,14 @@ function renderManageRoster() {
 
     if (!activeContainer || !subContainer) return;
 
-    const activeMembers = allMembers.filter(m => !m.isSub);
-    const subMembers = allMembers.filter(m => m.isSub);
+    // Sort alphabetically by name
+    const sortAlpha = (a, b) => a.name.localeCompare(b.name);
 
-    activeContainer.innerHTML = activeMembers.map(m => createRosterItemHTML(m)).join('') || '<p style="color: var(--text-secondary); padding: 10px;">No active members</p>';
-    subContainer.innerHTML = subMembers.map(m => createRosterItemHTML(m)).join('') || '<p style="color: var(--text-secondary); padding: 10px;">No substitutes</p>';
+    const activeMembersList = allMembers.filter(m => !m.isSub).sort(sortAlpha);
+    const vetMembersList = allMembers.filter(m => m.isSub).sort(sortAlpha);
+
+    activeContainer.innerHTML = activeMembersList.map(m => createRosterItemHTML(m)).join('') || '<p style="color: var(--text-secondary); padding: 10px;">No active members</p>';
+    subContainer.innerHTML = vetMembersList.map(m => createRosterItemHTML(m)).join('') || '<p style="color: var(--text-secondary); padding: 10px;">No vets</p>';
 
     // Initialize drag and drop
     initDragAndDrop();
@@ -1457,7 +1460,7 @@ function createRosterItemHTML(member) {
                 ${regionTag}
             </div>
             <div class="roster-item-actions">
-                <button class="move-btn" onclick="moveMember('${member.id}')" title="Move to ${member.isSub ? 'Active' : 'Subs'}">
+                <button class="move-btn" onclick="moveMember('${member.id}')" title="Move to ${member.isSub ? 'Active' : 'Vets'}">
                     ${member.isSub ? '↑' : '↓'}
                 </button>
                 <button onclick="removeMember('${member.id}')" title="Remove">✕</button>
