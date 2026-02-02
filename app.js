@@ -380,16 +380,16 @@ function updateAuthUI() {
         const myAccountBtn = document.getElementById('myAccountBtn');
         if (state.currentPlayer) {
             const member = allMembers.find(m => m.id === state.currentPlayer);
-            linkedPlayer.textContent = member ? `Playing as: ${member.name}` : '';
-            playerPreference.style.display = 'flex';
+            if (linkedPlayer) linkedPlayer.textContent = member ? `Playing as: ${member.name}` : '';
+            if (playerPreference) playerPreference.style.display = 'flex';
             if (myAccountBtn) myAccountBtn.style.display = 'inline-block';
 
             // Set current preference
             const roleSelect = document.getElementById('rolePreference');
-            roleSelect.value = state.playerPreferences[state.currentPlayer] || 'starter';
+            if (roleSelect) roleSelect.value = state.playerPreferences[state.currentPlayer] || 'starter';
         } else {
-            linkedPlayer.innerHTML = '<a href="#" onclick="showLinkModal(); return false;">Link your player profile</a>';
-            playerPreference.style.display = 'none';
+            if (linkedPlayer) linkedPlayer.innerHTML = '<a href="#" onclick="showLinkModal(); return false;">Link your player profile</a>';
+            if (playerPreference) playerPreference.style.display = 'none';
             if (myAccountBtn) myAccountBtn.style.display = 'none';
         }
     } else {
