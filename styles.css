@@ -1161,6 +1161,25 @@ body.manager-mode .tab.manager-only {
     cursor: pointer;
 }
 
+/* Mobile fix for date/time pickers */
+@media (max-width: 600px) {
+    .form-row input[type="date"],
+    .form-row input[type="time"] {
+        width: 100%;
+        max-width: 100%;
+        font-size: 16px; /* Prevents iOS zoom */
+        padding: 12px 10px;
+    }
+
+    .form-row-inline {
+        grid-template-columns: 1fr !important;
+    }
+
+    .form-row-inline .form-row {
+        width: 100%;
+    }
+}
+
 /* Form Buttons */
 .form-buttons {
     display: flex;
