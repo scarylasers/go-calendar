@@ -7,7 +7,7 @@ const AUTH_BASE = window.location.origin + '/auth';
 
 // ==================== MEMBER DATA ====================
 
-const activeMembers = [
+let activeMembers = [
     { id: 'alock', name: 'GO-Alock4', year: 2021 },
     { id: 'cronides', name: 'GO-Cronides', year: 2021, note: 'Former Head of GO' },
     { id: 'ghostxrp', name: 'GO_GhostXRP', year: 2021 },
@@ -36,7 +36,7 @@ const activeMembers = [
     { id: 'chr1sp', name: 'GO_Chr1sP', year: 2025 }
 ];
 
-const subMembers = [
+let subMembers = [
     { id: 'shark', name: 'Shark', year: 2021 },
     { id: 'docbutler', name: 'GO_DocButler', year: 2021 },
     { id: 'drsmartazz', name: 'GO_DrSmartAzz', year: 2021 },
@@ -53,7 +53,7 @@ const subMembers = [
     { id: 'johnharple', name: 'GO_JohnHarple', year: 2025 }
 ];
 
-const allMembers = [
+let allMembers = [
     ...activeMembers.map(m => ({ ...m, type: 'active' })),
     ...subMembers.map(m => ({ ...m, type: 'sub' }))
 ];
@@ -867,11 +867,11 @@ function renderSimpleMemberCard(member, isVet = false) {
                 <span>EU</span>
             </label>
             <label class="edit-checkbox" title="Active Member">
-                <input type="checkbox" ${!isVet ? 'checked' : ''} onchange="updateMemberStatus('${member.id}', !this.checked)">
+                <input type="checkbox" ${!member.isVet ? 'checked' : ''} onchange="updateMemberStatus('${member.id}', !this.checked)">
                 <span>Active</span>
             </label>
             <label class="edit-checkbox" title="Vet (Retired)">
-                <input type="checkbox" ${isVet ? 'checked' : ''} onchange="updateMemberStatus('${member.id}', this.checked)">
+                <input type="checkbox" ${member.isVet ? 'checked' : ''} onchange="updateMemberStatus('${member.id}', this.checked)">
                 <span>Vet</span>
             </label>
             <button class="btn-remove-member" onclick="removeMember('${member.id}')" title="Remove">✕</button>
@@ -1699,6 +1699,10 @@ async function updateMemberRegion(memberId, region) {
         const members = await fetchMembers();
         if (members.active) activeMembers = members.active;
         if (members.subs) subMembers = members.subs;
+        allMembers = [
+            ...activeMembers.map(m => ({ ...m, type: 'active' })),
+            ...subMembers.map(m => ({ ...m, type: 'sub' }))
+        ];
         renderRoster();
     }
 }
@@ -1710,6 +1714,10 @@ async function updateMemberStatus(memberId, isVet) {
         const members = await fetchMembers();
         if (members.active) activeMembers = members.active;
         if (members.subs) subMembers = members.subs;
+        allMembers = [
+            ...activeMembers.map(m => ({ ...m, type: 'active' })),
+            ...subMembers.map(m => ({ ...m, type: 'sub' }))
+        ];
         renderRoster();
     }
 }
@@ -2061,6 +2069,17 @@ async function init() {
     await fetchData();
     await fetchLeagues();
     await fetchDivisions();
+
+    // Fetch members from API (updates isVet status etc.)
+    const members = await fetchMembers();
+    if (members.active) activeMembers = members.active;
+    if (members.subs) subMembers = members.subs;
+    // Rebuild allMembers with updated data
+    allMembers = [
+        ...activeMembers.map(m => ({ ...m, type: 'active' })),
+        ...subMembers.map(m => ({ ...m, type: 'sub' }))
+    ];
+
     updateAuthUI(); // Update again after preferences are loaded
     renderAll();
 
