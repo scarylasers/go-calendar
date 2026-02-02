@@ -757,7 +757,7 @@ function renderGameCard(game) {
     const rosterStatusClass = needsPlayers ? 'status-need-players' : 'status-ready';
 
     return `
-        <div class="game-card ${isOnRoster ? 'on-roster' : ''}">
+        <div class="game-card ${isOnRoster ? 'on-roster' : ''}" data-game-id="${game.id}">
             <div class="game-header-centered">
                 <div class="game-datetime">
                     <span class="game-date">${formatDate(game.date)}</span>
@@ -806,8 +806,9 @@ function renderGameCard(game) {
                 <div class="manager-actions">
                     <button class="btn btn-secondary" onclick="openRosterModal('${game.id}')">Select Roster</button>
                     <div class="discord-post-group">
-                        <button class="btn btn-discord-small" onclick="postToDiscord('${game.id}', false)">Post to Discord</button>
-                        <button class="btn btn-discord-mention" onclick="postToDiscord('${game.id}', true)" title="Post with @mentions">Post to Discord and Mention</button>
+                        <button class="btn btn-announce" onclick="announceGame('${game.id}')" title="Ask players to mark availability">📢 Announce Game</button>
+                        <button class="btn btn-discord-small" onclick="postToDiscord('${game.id}', false)">Post Roster</button>
+                        <button class="btn btn-discord-mention" onclick="postToDiscord('${game.id}', true)" title="Post roster with @mentions">Post & Mention</button>
                     </div>
                 </div>
             ` : ''}
@@ -1110,6 +1111,42 @@ function updateFormMode(isEditing) {
     }
 }
 
+function handleGameLinkParam(gameId) {
+    const game = state.games.find(g => g.id === gameId);
+    if (!game) {
+        console.log('Game not found:', gameId);
+        return;
+    }
+
+    // Switch to Games tab
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+    document.querySelector('.tab[data-tab="games"]')?.classList.add('active');
+    document.getElementById('games')?.classList.add('active');
+
+    // Find and scroll to the game card
+    const gameCard = document.querySelector(`.game-card[data-game-id="${gameId}"]`);
+    if (gameCard) {
+        gameCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        gameCard.classList.add('highlighted');
+        setTimeout(() => gameCard.classList.remove('highlighted'), 3000);
+    }
+
+    // If user is logged in and on the roster, prompt to withdraw
+    if (state.currentPlayer && game.roster?.includes(state.currentPlayer)) {
+        setTimeout(() => {
+            if (confirm(`You're on the roster for ${game.opponent} on ${game.date}.\n\nDo you need to request a sub?`)) {
+                withdrawFromRoster(gameId);
+            }
+        }, 500);
+    } else if (!state.currentPlayer) {
+        // Not logged in - prompt to login
+        setTimeout(() => {
+            alert('Please log in with Discord to manage your availability for this game.');
+        }, 500);
+    }
+}
+
 async function withdrawFromRoster(gameId) {
     if (!confirm('Need a sub? This will remove you from the roster and notify managers to find a replacement.')) {
         return;
@@ -1134,6 +1171,22 @@ async function postToDiscord(gameId, mentionPlayers = false) {
     try {
         await postToDiscordAPI(gameId, mentionPlayers);
         alert(mentionPlayers ? 'Posted to Discord with @mentions!' : 'Posted to Discord successfully!');
+    } catch (error) {
+        showError(error.message);
+    }
+}
+
+async function announceGame(gameId) {
+    try {
+        const response = await fetch(`${API_BASE}/games/${gameId}/announce`, {
+            method: 'POST',
+            credentials: 'include'
+        });
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to announce game');
+        }
+        alert('Game announced! Players have been asked to mark their availability.');
     } catch (error) {
         showError(error.message);
     }
@@ -2082,6 +2135,18 @@ async function init() {
 
     updateAuthUI(); // Update again after preferences are loaded
     renderAll();
+
+    // Check for ?game=xxx parameter (from Discord link)
+    const gameParam = urlParams.get('game');
+    if (gameParam) {
+        // Clear the URL param without reload
+        window.history.replaceState({}, '', window.location.pathname);
+
+        // Wait for render, then scroll to game and show withdrawal modal
+        setTimeout(() => {
+            handleGameLinkParam(gameParam);
+        }, 300);
+    }
 
     // Set up event handlers
     initEventHandlers();

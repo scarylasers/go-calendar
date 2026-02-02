@@ -2035,6 +2035,9 @@ func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 		rosterValue = strings.Join(rosterNames, "\n")
 	}
 
+	// Build link for players to withdraw/request sub
+	gameLink := baseURL + "/?game=" + gameID
+
 	embed := map[string]interface{}{
 		"title": fmt.Sprintf("🎮 Game Day: %s", formattedDate),
 		"color": 0x00f0ff,
@@ -2042,6 +2045,7 @@ func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 			{"name": "⏰ Time", "value": formattedTime, "inline": true},
 			{"name": "⚔️ Opponent", "value": game.Opponent, "inline": true},
 			{"name": fmt.Sprintf("👥 Roster (%d/10)", len(rosterNames)), "value": rosterValue, "inline": false},
+			{"name": "🔗 Can't Make It?", "value": fmt.Sprintf("[Click here to request a sub](%s)", gameLink), "inline": false},
 		},
 		"footer":    map[string]string{"text": "Game Over Pop1 War Team"},
 		"timestamp": time.Now().UTC().Format(time.RFC3339),
@@ -2065,6 +2069,103 @@ func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 	// Add mentions as content (outside embed so they ping)
 	if mentionPlayers && mentionString != "" {
 		payload["content"] = "📢 Roster Alert! " + mentionString
+	}
+
+	payloadBytes, _ := json.Marshal(payload)
+	resp, err := http.Post(webhook, "application/json", bytes.NewReader(payloadBytes))
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to post to Discord: "+err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode >= 400 {
+		body, _ := io.ReadAll(resp.Body)
+		writeError(w, http.StatusInternalServerError, "Discord API error: "+string(body))
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func handleAnnounceGame(w http.ResponseWriter, r *http.Request) {
+	// Check manager permission
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	gameID := vars["id"]
+
+	webhook, _ := getSetting("discord_webhook")
+	if webhook == "" {
+		writeError(w, http.StatusBadRequest, "Discord webhook not configured")
+		return
+	}
+
+	game, err := getGameByID(gameID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+	if game == nil {
+		writeError(w, http.StatusNotFound, "Game not found")
+		return
+	}
+
+	formattedDate := game.Date
+	if t, err := time.Parse("2006-01-02", game.Date); err == nil {
+		formattedDate = t.Format("Monday, Jan 02, 2006")
+	}
+
+	formattedTime := game.Time
+	if parts := strings.Split(game.Time, ":"); len(parts) >= 2 {
+		if hour, err := strconv.Atoi(parts[0]); err == nil {
+			ampm := "AM"
+			if hour >= 12 {
+				ampm = "PM"
+			}
+			hour12 := hour % 12
+			if hour12 == 0 {
+				hour12 = 12
+			}
+			formattedTime = fmt.Sprintf("%d:%s %s ET", hour12, parts[1], ampm)
+		}
+	}
+
+	// Build link for players to mark availability
+	gameLink := baseURL + "/?game=" + gameID
+
+	embed := map[string]interface{}{
+		"title":       fmt.Sprintf("📢 Game Scheduled: %s", formattedDate),
+		"description": "A new game has been scheduled! Please mark your availability.",
+		"color":       0xf59e0b, // Orange/warning color
+		"fields": []map[string]interface{}{
+			{"name": "⏰ Time", "value": formattedTime, "inline": true},
+			{"name": "⚔️ Opponent", "value": game.Opponent, "inline": true},
+			{"name": "🎮 Game Mode", "value": game.Mode, "inline": true},
+			{"name": "✅ Mark Availability", "value": fmt.Sprintf("[Click here to mark if you can play](%s)", gameLink), "inline": false},
+		},
+		"footer":    map[string]string{"text": "Game Over Pop1 War Team • Please respond ASAP!"},
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	}
+
+	if game.Notes != "" {
+		fields := embed["fields"].([]map[string]interface{})
+		fields = append(fields, map[string]interface{}{
+			"name":   "📝 Notes",
+			"value":  game.Notes,
+			"inline": false,
+		})
+		embed["fields"] = fields
+	}
+
+	payload := map[string]interface{}{
+		"username": "Game Over Bot",
+		"content":  "📢 **New Game Scheduled!** Please check your availability!",
+		"embeds":   []map[string]interface{}{embed},
 	}
 
 	payloadBytes, _ := json.Marshal(payload)
@@ -2353,6 +2454,7 @@ func main() {
 	r.HandleFunc("/api/divisions", handleAddDivision).Methods("POST")
 	r.HandleFunc("/api/divisions/{name}", handleDeleteDivision).Methods("DELETE")
 	r.HandleFunc("/api/discord/post/{id}", handlePostToDiscord).Methods("POST")
+	r.HandleFunc("/api/games/{id}/announce", handleAnnounceGame).Methods("POST")
 	r.HandleFunc("/api/users/linked", handleGetLinkedUsers).Methods("GET")
 
 	// Test routes

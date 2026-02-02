@@ -336,6 +336,17 @@ body.manager-mode .tab.manager-only {
     box-shadow: 0 0 20px rgba(0, 240, 255, 0.1);
 }
 
+.game-card.highlighted {
+    border-color: var(--warning);
+    box-shadow: 0 0 30px rgba(245, 158, 11, 0.3);
+    animation: highlight-pulse 1s ease-in-out 3;
+}
+
+@keyframes highlight-pulse {
+    0%, 100% { box-shadow: 0 0 30px rgba(245, 158, 11, 0.3); }
+    50% { box-shadow: 0 0 50px rgba(245, 158, 11, 0.5); }
+}
+
 .game-header {
     display: flex;
     justify-content: space-between;
@@ -2128,6 +2139,22 @@ body.manager-mode .tab.manager-only {
 
 .btn-discord-mention:hover {
     background: #2d8049;
+}
+
+.btn-announce {
+    padding: 8px 16px;
+    background: var(--warning);
+    border: none;
+    border-radius: 5px;
+    color: var(--bg-dark);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-announce:hover {
+    background: #d97706;
+    transform: translateY(-1px);
 }
 
 /* Manager Actions */
