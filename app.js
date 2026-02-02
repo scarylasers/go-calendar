@@ -380,11 +380,11 @@ function showLinkModal() {
         addOptions(data.subs || [], 'Substitute Players');
     });
 
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function closeLinkModal() {
-    document.getElementById('linkModal').style.display = 'none';
+    document.getElementById('linkModal').classList.remove('active');
 }
 
 function showError(message) {
@@ -677,7 +677,7 @@ function openRosterModal(gameId) {
         cb.addEventListener('change', updateRosterCount);
     });
 
-    modal.style.display = 'flex';
+    modal.classList.add('active');
 }
 
 function updateRosterCount() {
@@ -696,7 +696,7 @@ async function saveRoster(gameId) {
         if (game) {
             game.roster = result.roster;
         }
-        document.getElementById('rosterModal').style.display = 'none';
+        document.getElementById('rosterModal').classList.remove('active');
         renderAll();
     }
 }
@@ -798,7 +798,7 @@ function initEventHandlers() {
     // Modal close buttons
     document.querySelectorAll('.close-modal').forEach(btn => {
         btn.addEventListener('click', () => {
-            btn.closest('.modal').style.display = 'none';
+            btn.closest('.modal').classList.remove('active');
         });
     });
 
@@ -806,7 +806,7 @@ function initEventHandlers() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                modal.style.display = 'none';
+                modal.classList.remove('active');
             }
         });
     });
@@ -815,7 +815,7 @@ function initEventHandlers() {
     document.querySelectorAll('.privacy-link, #privacyLink').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            document.getElementById('privacyModal').style.display = 'flex';
+            document.getElementById('privacyModal').classList.add('active');
         });
     });
 
@@ -823,7 +823,7 @@ function initEventHandlers() {
     document.querySelectorAll('.tos-link, #tosLink').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            document.getElementById('tosModal').style.display = 'flex';
+            document.getElementById('tosModal').classList.add('active');
         });
     });
 
