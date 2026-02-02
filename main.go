@@ -2145,7 +2145,7 @@ func handleAnnounceGame(w http.ResponseWriter, r *http.Request) {
 		"fields": []map[string]interface{}{
 			{"name": "⏰ Time", "value": formattedTime, "inline": true},
 			{"name": "⚔️ Opponent", "value": game.Opponent, "inline": true},
-			{"name": "🎮 Game Mode", "value": game.Mode, "inline": true},
+			{"name": "🎮 Game Mode", "value": game.GameMode, "inline": true},
 			{"name": "✅ Mark Availability", "value": fmt.Sprintf("[Click here to mark if you can play](%s)", gameLink), "inline": false},
 		},
 		"footer":    map[string]string{"text": "Game Over Pop1 War Team • Please respond ASAP!"},
