@@ -91,17 +91,64 @@
 
             <!-- Roster content (hidden until logged in) -->
             <div id="rosterContent" style="display: none;">
-                <div class="roster-section">
-                    <h3>Active Members</h3>
-                    <div id="activeRoster" class="roster-grid">
-                        <!-- Active members here -->
+                <!-- Save bar -->
+                <div class="roster-save-bar">
+                    <span id="rosterSaveStatus" class="save-status"></span>
+                    <button id="saveRosterBtn" class="btn btn-primary" onclick="saveRosterPreferences()">
+                        Save Changes
+                    </button>
+                </div>
+
+                <!-- NA Team -->
+                <div class="roster-section team-section">
+                    <h3>
+                        <span class="team-flag">🇺🇸</span> NA Team
+                    </h3>
+                    <div class="roster-columns">
+                        <div class="roster-column">
+                            <h4>Starters</h4>
+                            <div id="naStarters" class="roster-list">
+                                <!-- NA Starters here -->
+                            </div>
+                        </div>
+                        <div class="roster-column">
+                            <h4>Subs</h4>
+                            <div id="naSubs" class="roster-list">
+                                <!-- NA Subs here -->
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="roster-section">
-                    <h3>Substitute Players (Vets)</h3>
-                    <div id="subRoster" class="roster-grid">
-                        <!-- Subs here -->
+                <!-- EU Team -->
+                <div class="roster-section team-section">
+                    <h3>
+                        <span class="team-flag">🇪🇺</span> EU Team
+                    </h3>
+                    <div class="roster-columns">
+                        <div class="roster-column">
+                            <h4>Starters</h4>
+                            <div id="euStarters" class="roster-list">
+                                <!-- EU Starters here -->
+                            </div>
+                        </div>
+                        <div class="roster-column">
+                            <h4>Subs</h4>
+                            <div id="euSubs" class="roster-list">
+                                <!-- EU Subs here -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Vets (Retired) -->
+                <div class="roster-section vets-section">
+                    <h3>
+                        <span class="team-flag">🎖️</span> Vets
+                    </h3>
+                    <p class="vets-description">Retired members and veterans who sub when needed</p>
+                    <div id="vetsRoster" class="roster-list vets-list">
+                        <!-- Vets here -->
                     </div>
                 </div>
             </div>

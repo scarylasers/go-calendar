@@ -978,6 +978,52 @@ func handleLinkPlayer(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
+func handleGetLinkedUsers(w http.ResponseWriter, r *http.Request) {
+	// Return a map of player_id -> {avatar, displayName}
+	if db == nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{})
+		return
+	}
+
+	rows, err := db.Query(`
+		SELECT player_id, avatar, display_name, username
+		FROM users
+		WHERE player_id IS NOT NULL AND player_id != ''
+	`)
+	if err != nil {
+		writeJSON(w, http.StatusOK, map[string]interface{}{})
+		return
+	}
+	defer rows.Close()
+
+	result := make(map[string]interface{})
+	for rows.Next() {
+		var playerID, avatar, displayName, username string
+		var avatarPtr, displayNamePtr *string
+
+		if err := rows.Scan(&playerID, &avatarPtr, &displayNamePtr, &username); err != nil {
+			continue
+		}
+
+		if avatarPtr != nil {
+			avatar = *avatarPtr
+		}
+		if displayNamePtr != nil {
+			displayName = *displayNamePtr
+		}
+		if displayName == "" {
+			displayName = username
+		}
+
+		result[playerID] = map[string]string{
+			"avatar":      avatar,
+			"displayName": displayName,
+		}
+	}
+
+	writeJSON(w, http.StatusOK, result)
+}
+
 // ==================== MEMBER HANDLERS ====================
 
 func getMembersFromDB() ([]Member, []Member, error) {
@@ -1700,6 +1746,7 @@ func main() {
 	r.HandleFunc("/api/webhook", handleGetWebhook).Methods("GET")
 	r.HandleFunc("/api/webhook", handleSetWebhook).Methods("PUT")
 	r.HandleFunc("/api/discord/post/{id}", handlePostToDiscord).Methods("POST")
+	r.HandleFunc("/api/users/linked", handleGetLinkedUsers).Methods("GET")
 
 	// Internal routes for cron job
 	r.HandleFunc("/api/internal/pending-reminders", handleGetPendingReminders).Methods("GET")

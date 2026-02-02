@@ -66,6 +66,7 @@ let state = {
     currentPlayer: null,
     isManager: false,
     user: null, // Discord user info
+    linkedUsers: {}, // Maps player IDs to their Discord info (avatar, etc.)
     loading: false
 };
 
@@ -148,6 +149,10 @@ async function fetchData() {
         const data = await response.json();
         state.games = data.games || [];
         state.playerPreferences = data.playerPreferences || {};
+
+        // Fetch linked users for avatars
+        await fetchLinkedUsers();
+
         return data;
     } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -155,6 +160,19 @@ async function fetchData() {
         return null;
     } finally {
         state.loading = false;
+    }
+}
+
+async function fetchLinkedUsers() {
+    try {
+        const response = await fetch(`${API_BASE}/users/linked`, { credentials: 'include' });
+        if (response.ok) {
+            const data = await response.json();
+            state.linkedUsers = data || {};
+        }
+    } catch (error) {
+        console.error('Failed to fetch linked users:', error);
+        state.linkedUsers = {};
     }
 }
 
@@ -537,32 +555,126 @@ function renderGameCard(game) {
 }
 
 function renderRoster() {
-    const activeContainer = document.getElementById('activeRoster');
-    const subContainer = document.getElementById('subRoster');
+    const naStartersContainer = document.getElementById('naStarters');
+    const naSubsContainer = document.getElementById('naSubs');
+    const euStartersContainer = document.getElementById('euStarters');
+    const euSubsContainer = document.getElementById('euSubs');
+    const vetsContainer = document.getElementById('vetsRoster');
 
-    if (activeContainer) {
-        activeContainer.innerHTML = activeMembers.map(m => renderMemberCard(m)).join('');
-    }
-    if (subContainer) {
-        subContainer.innerHTML = subMembers.map(m => renderMemberCard(m, true)).join('');
+    if (!naStartersContainer) return;
+
+    // Sort alphabetically
+    const sortAlpha = (a, b) => a.name.localeCompare(b.name);
+
+    // Active members (not retired/vets)
+    const active = activeMembers.slice().sort(sortAlpha);
+
+    // Vets (substitute members are considered "vets" or retired)
+    const vets = subMembers.slice().sort(sortAlpha);
+
+    // Split active by region
+    const naMembers = active.filter(m => !m.region || m.region === 'NA');
+    const euMembers = active.filter(m => m.region === 'EU');
+
+    // Split by preference (starter vs sub)
+    const naStarters = naMembers.filter(m => state.playerPreferences[m.id] !== 'sub');
+    const naSubs = naMembers.filter(m => state.playerPreferences[m.id] === 'sub');
+    const euStarters = euMembers.filter(m => state.playerPreferences[m.id] !== 'sub');
+    const euSubs = euMembers.filter(m => state.playerPreferences[m.id] === 'sub');
+
+    // Render each section
+    naStartersContainer.innerHTML = naStarters.map(m => renderMemberCard(m, false)).join('') || '<p class="empty-list">No starters</p>';
+    naSubsContainer.innerHTML = naSubs.map(m => renderMemberCard(m, false)).join('') || '<p class="empty-list">No subs</p>';
+    euStartersContainer.innerHTML = euStarters.map(m => renderMemberCard(m, false)).join('') || '<p class="empty-list">No starters</p>';
+    euSubsContainer.innerHTML = euSubs.map(m => renderMemberCard(m, false)).join('') || '<p class="empty-list">No subs</p>';
+    vetsContainer.innerHTML = vets.map(m => renderMemberCard(m, true)).join('') || '<p class="empty-list">No vets</p>';
+}
+
+function renderMemberCard(member, isVet = false) {
+    const pref = state.playerPreferences[member.id] || 'starter';
+    const linkedUser = state.linkedUsers ? state.linkedUsers[member.id] : null;
+    const avatarUrl = linkedUser?.avatar || '';
+    const hasAvatar = avatarUrl && avatarUrl.length > 0;
+
+    const isCurrentUser = state.currentPlayer === member.id;
+
+    return `
+        <div class="member-card ${isVet ? 'vet-member' : ''}" data-member-id="${member.id}">
+            ${hasAvatar
+                ? `<img class="member-avatar linked" src="${avatarUrl}" alt="" onerror="this.style.display='none'">`
+                : `<div class="member-avatar">${member.name.charAt(0).toUpperCase()}</div>`
+            }
+            <div class="member-details">
+                <div class="member-name">${member.name}</div>
+                <div class="member-year">Since ${member.year}</div>
+            </div>
+            ${isCurrentUser ? `
+                <div class="member-actions">
+                    ${!isVet ? `
+                        <button onclick="togglePreference('${member.id}')" title="Toggle Starter/Sub">
+                            ${pref === 'sub' ? '⬆️ Starter' : '⬇️ Sub'}
+                        </button>
+                        <button class="retire-btn" onclick="toggleRetire('${member.id}', true)" title="Retire to Vets">
+                            🎖️ Retire
+                        </button>
+                    ` : `
+                        <button onclick="toggleRetire('${member.id}', false)" title="Return to Active">
+                            ↩️ Unretire
+                        </button>
+                    `}
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
+async function togglePreference(memberId) {
+    const currentPref = state.playerPreferences[memberId] || 'starter';
+    const newPref = currentPref === 'starter' ? 'sub' : 'starter';
+
+    state.playerPreferences[memberId] = newPref;
+    renderRoster();
+    showSaveStatus('Unsaved changes');
+}
+
+async function toggleRetire(memberId, retire) {
+    // Update member's isSub status (retire = move to vets)
+    const result = await updateMemberAPI(memberId, { isSub: retire });
+    if (result) {
+        await fetchData();
+        renderAll();
+        showSaveStatus(retire ? 'Moved to Vets' : 'Returned to Active');
     }
 }
 
-function renderMemberCard(member, isSub = false) {
-    const pref = state.playerPreferences[member.id];
-    const prefLabel = pref === 'sub' ? 'Prefers Sub' : 'Starter';
+async function saveRosterPreferences() {
+    showSaveStatus('Saving...', true);
 
-    return `
-        <div class="member-card ${isSub ? 'sub-member' : ''}">
-            <div class="member-name">${member.name}</div>
-            <div class="member-tags">
-                ${member.region ? `<span class="member-tag region">${member.region}</span>` : ''}
-                ${member.note ? `<span class="member-tag note">${member.note}</span>` : ''}
-                <span class="member-tag pref ${pref || 'starter'}">${prefLabel}</span>
-            </div>
-            <div class="member-year">Since ${member.year}</div>
-        </div>
-    `;
+    // Save all preferences
+    const promises = Object.entries(state.playerPreferences).map(([playerId, pref]) => {
+        return fetch(`/api/preferences/${playerId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ preference: pref })
+        });
+    });
+
+    try {
+        await Promise.all(promises);
+        showSaveStatus('Saved!');
+        setTimeout(() => showSaveStatus(''), 2000);
+    } catch (error) {
+        showSaveStatus('Error saving');
+    }
+}
+
+function showSaveStatus(message, isSaving = false) {
+    const status = document.getElementById('rosterSaveStatus');
+    if (status) {
+        status.textContent = message;
+        status.className = 'save-status' + (isSaving ? ' saving' : '');
+    }
 }
 
 function renderManageGames() {
