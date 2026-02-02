@@ -2036,7 +2036,11 @@ func handlePostToDiscord(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build link for players to withdraw/request sub
-	gameLink := baseURL + "/?game=" + gameID
+	siteURL := baseURL
+	if siteURL == "" {
+		siteURL = "https://go-pop1-calendar.onrender.com"
+	}
+	gameLink := siteURL + "/?game=" + gameID
 
 	embed := map[string]interface{}{
 		"title": fmt.Sprintf("🎮 Game Day: %s", formattedDate),
@@ -2136,7 +2140,11 @@ func handleAnnounceGame(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Build link for players to mark availability
-	gameLink := baseURL + "/?game=" + gameID
+	siteURL := baseURL
+	if siteURL == "" {
+		siteURL = "https://go-pop1-calendar.onrender.com"
+	}
+	gameLink := siteURL + "/?game=" + gameID
 
 	embed := map[string]interface{}{
 		"title":       fmt.Sprintf("📢 Game Scheduled: %s", formattedDate),
