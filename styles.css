@@ -1139,6 +1139,67 @@ body.manager-mode .tab.manager-only {
     border-color: var(--cyan);
 }
 
+/* Highlighted Date/Time Pickers */
+.form-row input[type="date"],
+.form-row input[type="time"] {
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.1), rgba(139, 0, 255, 0.1));
+    border: 2px solid var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 600;
+    color: var(--cyan);
+}
+
+.form-row input[type="date"]:focus,
+.form-row input[type="time"]:focus {
+    border-color: var(--magenta);
+    box-shadow: 0 0 15px rgba(0, 240, 255, 0.3);
+}
+
+.form-row input[type="date"]::-webkit-calendar-picker-indicator,
+.form-row input[type="time"]::-webkit-calendar-picker-indicator {
+    filter: invert(1);
+    cursor: pointer;
+}
+
+/* Form Buttons */
+.form-buttons {
+    display: flex;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+/* Manage Game Card */
+.manage-game-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.manage-game-card .game-info {
+    flex: 1;
+}
+
+.manage-game-card .game-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    background: rgba(139, 0, 255, 0.15);
+    border: 1px solid var(--purple);
+    border-radius: 10px;
+    font-size: 0.75rem;
+    color: var(--purple);
+    margin-left: 10px;
+}
+
+.manage-game-card .game-actions {
+    display: flex;
+    gap: 8px;
+}
+
 .manage-games-list {
     display: flex;
     flex-direction: column;

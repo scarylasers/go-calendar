@@ -69,6 +69,7 @@ let state = {
     linkedUsers: {}, // Maps player IDs to their Discord info (avatar, etc.)
     leagues: [],
     divisions: [],
+    editingGameId: null, // ID of game being edited, null if creating new
     loading: false
 };
 
@@ -205,6 +206,26 @@ async function createGame(gameData) {
         return await response.json();
     } catch (error) {
         console.error('Failed to create game:', error);
+        showError(error.message);
+        return null;
+    }
+}
+
+async function updateGame(gameId, gameData) {
+    try {
+        const response = await fetch(`${API_BASE}/games/${gameId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(gameData)
+        });
+        if (!response.ok) {
+            const data = await response.json();
+            throw new Error(data.error || 'Failed to update game');
+        }
+        return await response.json();
+    } catch (error) {
+        console.error('Failed to update game:', error);
         showError(error.message);
         return null;
     }
@@ -941,9 +962,11 @@ function renderManageGames() {
             <div class="game-info">
                 <strong>${formatDate(game.date)}</strong> at ${formatTime(game.time)}
                 <br>vs ${game.opponent}
+                ${game.league ? `<span class="game-tag">${game.league}${game.division ? ` - ${game.division}` : ''}</span>` : ''}
                 ${game.notes ? `<br><em>${game.notes}</em>` : ''}
             </div>
             <div class="game-actions">
+                <button class="btn btn-secondary btn-small" onclick="editGame('${game.id}')">Edit</button>
                 <button class="btn btn-danger btn-small" onclick="deleteGame('${game.id}')">Delete</button>
             </div>
         </div>
@@ -977,6 +1000,81 @@ async function deleteGame(gameId) {
     if (success) {
         state.games = state.games.filter(g => g.id !== gameId);
         renderAll();
+    }
+}
+
+function editGame(gameId) {
+    const game = state.games.find(g => g.id === gameId);
+    if (!game) return;
+
+    state.editingGameId = gameId;
+
+    // Populate form fields
+    document.getElementById('gameDate').value = game.date;
+    document.getElementById('gameTime').value = game.time;
+    document.getElementById('opponent').value = game.opponent;
+    document.getElementById('gameLeague').value = game.league || '';
+    document.getElementById('gameDivision').value = game.division || '';
+    document.getElementById('gameNotes').value = game.notes || '';
+
+    // Handle game mode
+    const gameModeSelect = document.getElementById('gameMode');
+    const gameModeCustom = document.getElementById('gameModeCustom');
+    const standardModes = ['War', 'Squads', 'Legions'];
+
+    if (standardModes.includes(game.gameMode)) {
+        gameModeSelect.value = game.gameMode;
+        gameModeCustom.style.display = 'none';
+    } else {
+        gameModeSelect.value = 'Other';
+        gameModeCustom.value = game.gameMode || '';
+        gameModeCustom.style.display = 'block';
+    }
+
+    // Team size
+    const teamSizeSelect = document.getElementById('teamSize');
+    if (teamSizeSelect) {
+        teamSizeSelect.value = game.teamSize || '10';
+    }
+
+    // Update form UI for edit mode
+    updateFormMode(true);
+
+    // Scroll to form
+    document.getElementById('createGameForm').scrollIntoView({ behavior: 'smooth' });
+}
+
+function cancelEdit() {
+    state.editingGameId = null;
+    document.getElementById('createGameForm').reset();
+
+    // Reset custom game mode
+    const gameModeCustom = document.getElementById('gameModeCustom');
+    if (gameModeCustom) {
+        gameModeCustom.style.display = 'none';
+        gameModeCustom.value = '';
+    }
+
+    // Reset team size
+    const teamSizeSelect = document.getElementById('teamSize');
+    if (teamSizeSelect) {
+        teamSizeSelect.value = '10';
+    }
+
+    updateFormMode(false);
+}
+
+function updateFormMode(isEditing) {
+    const submitBtn = document.querySelector('#createGameForm button[type="submit"]');
+    const formTitle = document.querySelector('.create-game-form h3') || document.querySelector('.manage-section h3');
+    const cancelBtn = document.getElementById('cancelEditBtn');
+
+    if (submitBtn) {
+        submitBtn.textContent = isEditing ? 'Update Game' : 'Create Game';
+    }
+
+    if (cancelBtn) {
+        cancelBtn.style.display = isEditing ? 'inline-block' : 'none';
     }
 }
 
@@ -1770,9 +1868,27 @@ function initEventHandlers() {
                 notes: document.getElementById('gameNotes').value
             };
 
-            const game = await createGame(gameData);
-            if (game) {
-                state.games.push(game);
+            let result;
+            if (state.editingGameId) {
+                // Update existing game
+                result = await updateGame(state.editingGameId, gameData);
+                if (result) {
+                    const index = state.games.findIndex(g => g.id === state.editingGameId);
+                    if (index !== -1) {
+                        state.games[index] = result;
+                    }
+                    state.editingGameId = null;
+                    updateFormMode(false);
+                }
+            } else {
+                // Create new game
+                result = await createGame(gameData);
+                if (result) {
+                    state.games.push(result);
+                }
+            }
+
+            if (result) {
                 createForm.reset();
                 // Reset team size to default and hide custom input
                 if (document.getElementById('teamSize')) {

@@ -1416,6 +1416,62 @@ func handleDeleteGame(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
+func handleUpdateGame(w http.ResponseWriter, r *http.Request) {
+	// Check manager permission
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	gameID := vars["id"]
+
+	var body struct {
+		Date     string `json:"date"`
+		Time     string `json:"time"`
+		Opponent string `json:"opponent"`
+		League   string `json:"league"`
+		Division string `json:"division"`
+		GameMode string `json:"gameMode"`
+		TeamSize int    `json:"teamSize"`
+		Notes    string `json:"notes"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid JSON")
+		return
+	}
+
+	// Validate required fields
+	if body.Date == "" || body.Time == "" || body.Opponent == "" {
+		writeError(w, http.StatusBadRequest, "Date, time, and opponent are required")
+		return
+	}
+
+	// Update the game in database
+	_, err := db.Exec(`
+		UPDATE games SET date = $1, time = $2, opponent = $3, league = $4,
+		division = $5, game_mode = $6, team_size = $7, notes = $8
+		WHERE id = $9
+	`, body.Date, body.Time, body.Opponent, body.League, body.Division,
+		body.GameMode, body.TeamSize, body.Notes, gameID)
+
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	// Return updated game
+	game, err := getGameByID(gameID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, err.Error())
+		return
+	}
+
+	writeJSON(w, http.StatusOK, game)
+}
+
 func handleUpdateRoster(w http.ResponseWriter, r *http.Request) {
 	// Check manager permission
 	session := getSessionFromRequest(r)
@@ -2276,6 +2332,7 @@ func main() {
 	r.HandleFunc("/api/members/order", handleUpdateMemberOrder).Methods("PUT")
 	r.HandleFunc("/api/games", handleGetGames).Methods("GET")
 	r.HandleFunc("/api/games", handleCreateGame).Methods("POST")
+	r.HandleFunc("/api/games/{id}", handleUpdateGame).Methods("PUT")
 	r.HandleFunc("/api/games/{id}", handleDeleteGame).Methods("DELETE")
 	r.HandleFunc("/api/games/{id}/roster", handleUpdateRoster).Methods("PUT")
 	r.HandleFunc("/api/games/{id}/availability", handleSetAvailability).Methods("POST")

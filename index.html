@@ -275,7 +275,10 @@
                         <label for="gameNotes">Notes (optional):</label>
                         <input type="text" id="gameNotes" placeholder="e.g., Playoffs Round 1">
                     </div>
-                    <button type="submit" class="btn btn-primary">Create Game</button>
+                    <div class="form-buttons">
+                        <button type="submit" class="btn btn-primary">Create Game</button>
+                        <button type="button" id="cancelEditBtn" class="btn btn-secondary" onclick="cancelEdit()" style="display: none;">Cancel</button>
+                    </div>
                 </form>
             </div>
 
