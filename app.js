@@ -519,7 +519,7 @@ function renderGameCard(game) {
                 <div class="availability-buttons">
                     <span class="on-roster-badge">✓ You're on the roster!</span>
                     <button class="btn btn-warning" onclick="withdrawFromRoster('${game.id}')">
-                        I Need a Sub
+                        I need a sub to cover for me
                     </button>
                 </div>
             `;
@@ -557,14 +557,14 @@ function renderGameCard(game) {
         return `<span class="player-chip ${isSub ? 'sub' : ''}">${getMemberName(id)}${pref === 'sub' ? ' (sub)' : ''}</span>`;
     }).join('');
 
-    // Roster list
+    // Roster list - vertical with large chips
     const rosterPlayers = (game.roster || []).map(id => {
-        return `<span class="roster-chip">${getMemberName(id)}</span>`;
+        return `<div class="roster-chip-large">${getMemberName(id)}</div>`;
     }).join('');
 
-    // Subs list (backup players)
+    // Subs list (backup players) - vertical with large chips
     const subPlayers = (game.subs || []).map(id => {
-        return `<span class="roster-chip sub-chip">${getMemberName(id)}</span>`;
+        return `<div class="roster-chip-large sub-chip-large">${getMemberName(id)}</div>`;
     }).join('');
 
     // Calculate countdown
@@ -588,10 +588,10 @@ function renderGameCard(game) {
                 </div>
                 <div class="game-time">${formatTime(game.time)}</div>
             </div>
+            <div class="game-mode-large">${gameMode}</div>
             <div class="game-opponent">vs ${game.opponent}</div>
             <div class="game-meta">
                 ${game.league ? `<span class="game-league">${game.league}${game.division ? ` - ${game.division}` : ''}</span>` : ''}
-                ${gameModeDisplay}
             </div>
             ${game.notes ? `<div class="game-notes">${game.notes}</div>` : ''}
 
@@ -611,16 +611,16 @@ function renderGameCard(game) {
             ` : ''}
 
             ${rosterPlayers ? `
-                <div class="roster-section">
+                <div class="final-roster-section">
                     <h4>Final Roster (${rosterCount}/${teamSize})</h4>
-                    <div class="roster-chips">${rosterPlayers}</div>
+                    <div class="roster-list-vertical">${rosterPlayers}</div>
                 </div>
             ` : ''}
 
             ${subPlayers ? `
-                <div class="roster-section subs-section">
+                <div class="final-roster-section subs-section">
                     <h4>Backup Subs</h4>
-                    <div class="roster-chips">${subPlayers}</div>
+                    <div class="roster-list-vertical">${subPlayers}</div>
                 </div>
             ` : ''}
 

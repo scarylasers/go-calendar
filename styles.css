@@ -2221,3 +2221,68 @@ body.manager-mode .tab.manager-only {
 .legal-content::-webkit-scrollbar-thumb:hover {
     background: var(--cyan);
 }
+
+/* Large Game Mode Badge - Above Opponent */
+.game-mode-large {
+    display: inline-block;
+    padding: 10px 25px;
+    background: linear-gradient(135deg, rgba(0, 240, 255, 0.25), rgba(139, 0, 255, 0.25));
+    border: 2px solid var(--cyan);
+    border-radius: 25px;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--cyan);
+    text-transform: uppercase;
+    letter-spacing: 3px;
+    text-shadow: 0 0 15px rgba(0, 240, 255, 0.5);
+    margin: 10px 0;
+}
+
+/* Final Roster Section - Centered */
+.final-roster-section {
+    margin-top: 20px;
+    padding-top: 15px;
+    border-top: 1px solid var(--border);
+    text-align: center;
+}
+
+.final-roster-section h4 {
+    color: var(--success);
+    font-family: 'Orbitron', sans-serif;
+    font-size: 1rem;
+    margin-bottom: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.final-roster-section.subs-section h4 {
+    color: var(--warning);
+}
+
+/* Vertical Roster List with Large Chips */
+.roster-list-vertical {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+}
+
+.roster-chip-large {
+    display: block;
+    padding: 12px 30px;
+    background: rgba(0, 255, 136, 0.15);
+    border: 1px solid var(--success);
+    border-radius: 25px;
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--success);
+    text-align: center;
+    min-width: 180px;
+}
+
+.sub-chip-large {
+    background: rgba(255, 170, 0, 0.15);
+    border-color: var(--warning);
+    color: var(--warning);
+}
