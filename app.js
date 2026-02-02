@@ -433,6 +433,7 @@ function renderAll() {
     renderRoster();
     if (state.isManager) {
         renderManageGames();
+        renderManageRoster();
     }
 }
 
@@ -716,6 +717,237 @@ async function saveWebhookSetting() {
     const success = await saveWebhookAPI(input.value);
     if (success) {
         alert('Webhook saved!');
+    }
+}
+
+// ==================== ROSTER MANAGEMENT ====================
+
+function renderManageRoster() {
+    const activeContainer = document.getElementById('manageActiveRoster');
+    const subContainer = document.getElementById('manageSubRoster');
+
+    if (!activeContainer || !subContainer) return;
+
+    const activeMembers = allMembers.filter(m => !m.isSub);
+    const subMembers = allMembers.filter(m => m.isSub);
+
+    activeContainer.innerHTML = activeMembers.map(m => createRosterItemHTML(m)).join('') || '<p style="color: var(--text-secondary); padding: 10px;">No active members</p>';
+    subContainer.innerHTML = subMembers.map(m => createRosterItemHTML(m)).join('') || '<p style="color: var(--text-secondary); padding: 10px;">No substitutes</p>';
+
+    // Initialize drag and drop
+    initDragAndDrop();
+}
+
+function createRosterItemHTML(member) {
+    const regionTag = member.region ? `<span class="roster-item-region">${member.region}</span>` : '';
+    return `
+        <div class="roster-item" data-id="${member.id}" draggable="true">
+            <div class="roster-item-info">
+                <span class="roster-item-name">${member.name}</span>
+                ${regionTag}
+            </div>
+            <div class="roster-item-actions">
+                <button class="move-btn" onclick="moveMember('${member.id}')" title="Move to ${member.isSub ? 'Active' : 'Subs'}">
+                    ${member.isSub ? '↑' : '↓'}
+                </button>
+                <button onclick="removeMember('${member.id}')" title="Remove">✕</button>
+            </div>
+        </div>
+    `;
+}
+
+function initDragAndDrop() {
+    const containers = document.querySelectorAll('.sortable-roster');
+    const items = document.querySelectorAll('.roster-item');
+
+    items.forEach(item => {
+        item.addEventListener('dragstart', handleDragStart);
+        item.addEventListener('dragend', handleDragEnd);
+    });
+
+    containers.forEach(container => {
+        container.addEventListener('dragover', handleDragOver);
+        container.addEventListener('drop', handleDrop);
+    });
+}
+
+let draggedItem = null;
+
+function handleDragStart(e) {
+    draggedItem = this;
+    this.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+    this.classList.remove('dragging');
+    draggedItem = null;
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+
+    const afterElement = getDragAfterElement(this, e.clientY);
+    if (draggedItem) {
+        if (afterElement) {
+            this.insertBefore(draggedItem, afterElement);
+        } else {
+            this.appendChild(draggedItem);
+        }
+    }
+}
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.roster-item:not(.dragging)')];
+
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+async function handleDrop(e) {
+    e.preventDefault();
+    if (!draggedItem) return;
+
+    const memberId = draggedItem.dataset.id;
+    const targetContainer = e.currentTarget;
+    const isSub = targetContainer.id === 'manageSubRoster';
+
+    // Get new order
+    const items = targetContainer.querySelectorAll('.roster-item');
+    const newOrder = Array.from(items).map(item => item.dataset.id);
+
+    // Update member type if moved between lists
+    await updateMemberAPI(memberId, { isSub });
+
+    // Save new order
+    await saveRosterOrderAPI(isSub ? 'subs' : 'active', newOrder);
+
+    // Refresh data
+    await fetchData();
+    renderManageRoster();
+}
+
+async function addNewMember() {
+    const nameInput = document.getElementById('newMemberName');
+    const typeSelect = document.getElementById('newMemberType');
+    const regionSelect = document.getElementById('newMemberRegion');
+
+    const name = nameInput.value.trim();
+    if (!name) {
+        alert('Please enter a player name');
+        return;
+    }
+
+    const member = {
+        name: name,
+        isSub: typeSelect.value === 'sub',
+        region: regionSelect.value || null
+    };
+
+    const result = await addMemberAPI(member);
+    if (result) {
+        nameInput.value = '';
+        regionSelect.value = '';
+        await fetchData();
+        renderAll();
+        renderManageRoster();
+    }
+}
+
+async function removeMember(memberId) {
+    const member = allMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    if (!confirm(`Remove ${member.name} from the roster?`)) return;
+
+    const success = await removeMemberAPI(memberId);
+    if (success) {
+        await fetchData();
+        renderAll();
+        renderManageRoster();
+    }
+}
+
+async function moveMember(memberId) {
+    const member = allMembers.find(m => m.id === memberId);
+    if (!member) return;
+
+    await updateMemberAPI(memberId, { isSub: !member.isSub });
+    await fetchData();
+    renderAll();
+    renderManageRoster();
+}
+
+// API functions for roster management
+async function addMemberAPI(member) {
+    try {
+        const response = await fetch('/api/members', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(member)
+        });
+        if (!response.ok) throw new Error('Failed to add member');
+        return await response.json();
+    } catch (error) {
+        console.error('Error adding member:', error);
+        alert('Failed to add member');
+        return null;
+    }
+}
+
+async function updateMemberAPI(memberId, updates) {
+    try {
+        const response = await fetch(`/api/members/${memberId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify(updates)
+        });
+        if (!response.ok) throw new Error('Failed to update member');
+        return await response.json();
+    } catch (error) {
+        console.error('Error updating member:', error);
+        return null;
+    }
+}
+
+async function removeMemberAPI(memberId) {
+    try {
+        const response = await fetch(`/api/members/${memberId}`, {
+            method: 'DELETE',
+            credentials: 'include'
+        });
+        if (!response.ok) throw new Error('Failed to remove member');
+        return true;
+    } catch (error) {
+        console.error('Error removing member:', error);
+        alert('Failed to remove member');
+        return false;
+    }
+}
+
+async function saveRosterOrderAPI(type, order) {
+    try {
+        const response = await fetch(`/api/members/order`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'include',
+            body: JSON.stringify({ type, order })
+        });
+        if (!response.ok) throw new Error('Failed to save order');
+        return true;
+    } catch (error) {
+        console.error('Error saving roster order:', error);
+        return false;
     }
 }
 

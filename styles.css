@@ -507,6 +507,157 @@ body.manager-mode .tab.manager-only {
     gap: 10px;
 }
 
+/* Roster Management */
+.roster-management {
+    background: var(--bg-dark);
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid var(--border);
+}
+
+.roster-add-form {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid var(--border);
+}
+
+.roster-add-form h4 {
+    color: var(--cyan);
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+
+.add-member-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.add-member-row input,
+.add-member-row select {
+    padding: 10px 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+}
+
+.add-member-row input {
+    flex: 1;
+    min-width: 150px;
+}
+
+.add-member-row select {
+    min-width: 120px;
+}
+
+.add-member-row input:focus,
+.add-member-row select:focus {
+    outline: none;
+    border-color: var(--cyan);
+}
+
+.roster-lists {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+}
+
+@media (max-width: 768px) {
+    .roster-lists {
+        grid-template-columns: 1fr;
+    }
+}
+
+.roster-list-section h4 {
+    color: var(--magenta);
+    margin-bottom: 12px;
+    font-size: 0.95rem;
+}
+
+.sortable-roster {
+    min-height: 100px;
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 10px;
+    border: 1px dashed var(--border);
+}
+
+.roster-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    background: var(--bg-dark);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    margin-bottom: 8px;
+    cursor: grab;
+    transition: all 0.2s;
+}
+
+.roster-item:hover {
+    border-color: var(--cyan);
+}
+
+.roster-item:active {
+    cursor: grabbing;
+}
+
+.roster-item.dragging {
+    opacity: 0.5;
+    border-color: var(--magenta);
+}
+
+.roster-item-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.roster-item-name {
+    font-weight: 500;
+}
+
+.roster-item-region {
+    font-size: 0.75rem;
+    padding: 2px 6px;
+    background: var(--bg-card);
+    border-radius: 3px;
+    color: var(--text-secondary);
+}
+
+.roster-item-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.roster-item-actions button {
+    padding: 4px 8px;
+    font-size: 0.75rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.roster-item-actions button:hover {
+    border-color: var(--danger);
+    color: var(--danger);
+}
+
+.roster-item-actions .move-btn:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+}
+
+.webhook-steps li::before {
+    background: linear-gradient(135deg, var(--magenta), var(--purple));
+}
+
 /* Modals */
 .modal {
     position: fixed;

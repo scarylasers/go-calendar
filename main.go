@@ -205,8 +205,50 @@ func initDB() error {
 		return fmt.Errorf("failed to create users table: %v", err)
 	}
 
+	// Members table for roster management
+	_, err = db.Exec(`
+		CREATE TABLE IF NOT EXISTS members (
+			id TEXT PRIMARY KEY,
+			name TEXT NOT NULL,
+			year INTEGER DEFAULT 2025,
+			region TEXT,
+			note TEXT,
+			is_sub BOOLEAN DEFAULT FALSE,
+			sort_order INTEGER DEFAULT 0,
+			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+		)
+	`)
+	if err != nil {
+		return fmt.Errorf("failed to create members table: %v", err)
+	}
+
+	// Seed members if table is empty
+	var count int
+	db.QueryRow("SELECT COUNT(*) FROM members").Scan(&count)
+	if count == 0 {
+		seedMembers()
+	}
+
 	log.Println("Database initialized successfully")
 	return nil
+}
+
+func seedMembers() {
+	log.Println("Seeding members table with initial data...")
+
+	// Insert active members
+	for i, m := range ActiveMembers {
+		db.Exec(`INSERT INTO members (id, name, year, region, note, is_sub, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			m.ID, m.Name, m.Year, m.Region, m.Note, false, i)
+	}
+
+	// Insert sub members
+	for i, m := range SubMembers {
+		db.Exec(`INSERT INTO members (id, name, year, region, note, is_sub, sort_order) VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+			m.ID, m.Name, m.Year, m.Region, m.Note, true, i)
+	}
+
+	log.Printf("Seeded %d active members and %d subs", len(ActiveMembers), len(SubMembers))
 }
 
 // ==================== SESSION HELPERS ====================
@@ -938,6 +980,35 @@ func handleLinkPlayer(w http.ResponseWriter, r *http.Request) {
 
 // ==================== MEMBER HANDLERS ====================
 
+func getMembersFromDB() ([]Member, []Member, error) {
+	if db == nil {
+		return ActiveMembers, SubMembers, nil
+	}
+
+	rows, err := db.Query("SELECT id, name, year, COALESCE(region, ''), COALESCE(note, ''), is_sub FROM members ORDER BY is_sub, sort_order, name")
+	if err != nil {
+		return nil, nil, err
+	}
+	defer rows.Close()
+
+	var active []Member
+	var subs []Member
+
+	for rows.Next() {
+		var m Member
+		if err := rows.Scan(&m.ID, &m.Name, &m.Year, &m.Region, &m.Note, &m.IsSub); err != nil {
+			continue
+		}
+		if m.IsSub {
+			subs = append(subs, m)
+		} else {
+			active = append(active, m)
+		}
+	}
+
+	return active, subs, nil
+}
+
 func handleGetMembers(w http.ResponseWriter, r *http.Request) {
 	linkedIDs, _ := getLinkedPlayerIDs()
 	linkedMap := make(map[string]bool)
@@ -950,20 +1021,178 @@ func handleGetMembers(w http.ResponseWriter, r *http.Request) {
 		Linked bool `json:"linked"`
 	}
 
-	var active []MemberWithStatus
-	var subs []MemberWithStatus
-
-	for _, m := range ActiveMembers {
-		active = append(active, MemberWithStatus{Member: m, Linked: linkedMap[m.ID]})
+	active, subs, err := getMembersFromDB()
+	if err != nil {
+		// Fallback to hardcoded
+		active = ActiveMembers
+		subs = SubMembers
 	}
-	for _, m := range SubMembers {
-		subs = append(subs, MemberWithStatus{Member: m, Linked: linkedMap[m.ID]})
+
+	var activeWithStatus []MemberWithStatus
+	var subsWithStatus []MemberWithStatus
+
+	for _, m := range active {
+		activeWithStatus = append(activeWithStatus, MemberWithStatus{Member: m, Linked: linkedMap[m.ID]})
+	}
+	for _, m := range subs {
+		subsWithStatus = append(subsWithStatus, MemberWithStatus{Member: m, Linked: linkedMap[m.ID]})
 	}
 
 	writeJSON(w, http.StatusOK, map[string]interface{}{
-		"active": active,
-		"subs":   subs,
+		"active": activeWithStatus,
+		"subs":   subsWithStatus,
 	})
+}
+
+func handleAddMember(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	var input struct {
+		Name   string `json:"name"`
+		IsSub  bool   `json:"isSub"`
+		Region string `json:"region"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	if input.Name == "" {
+		writeError(w, http.StatusBadRequest, "Name is required")
+		return
+	}
+
+	// Generate ID from name
+	id := strings.ToLower(strings.ReplaceAll(input.Name, " ", ""))
+	id = strings.ReplaceAll(id, "_", "")
+	id = strings.ReplaceAll(id, "-", "")
+
+	// Get max sort order
+	var maxOrder int
+	db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM members WHERE is_sub = $1", input.IsSub).Scan(&maxOrder)
+
+	_, err := db.Exec(`INSERT INTO members (id, name, year, region, is_sub, sort_order) VALUES ($1, $2, $3, $4, $5, $6)`,
+		id, input.Name, 2025, input.Region, input.IsSub, maxOrder+1)
+
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to add member")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]interface{}{
+		"id":     id,
+		"name":   input.Name,
+		"isSub":  input.IsSub,
+		"region": input.Region,
+	})
+}
+
+func handleUpdateMember(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	memberID := vars["id"]
+
+	var input struct {
+		Name   *string `json:"name"`
+		IsSub  *bool   `json:"isSub"`
+		Region *string `json:"region"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Build update query dynamically
+	updates := []string{}
+	args := []interface{}{}
+	argNum := 1
+
+	if input.Name != nil {
+		updates = append(updates, fmt.Sprintf("name = $%d", argNum))
+		args = append(args, *input.Name)
+		argNum++
+	}
+	if input.IsSub != nil {
+		updates = append(updates, fmt.Sprintf("is_sub = $%d", argNum))
+		args = append(args, *input.IsSub)
+		argNum++
+	}
+	if input.Region != nil {
+		updates = append(updates, fmt.Sprintf("region = $%d", argNum))
+		args = append(args, *input.Region)
+		argNum++
+	}
+
+	if len(updates) == 0 {
+		writeError(w, http.StatusBadRequest, "No updates provided")
+		return
+	}
+
+	args = append(args, memberID)
+	query := fmt.Sprintf("UPDATE members SET %s WHERE id = $%d", strings.Join(updates, ", "), argNum)
+
+	_, err := db.Exec(query, args...)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to update member")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func handleDeleteMember(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	vars := mux.Vars(r)
+	memberID := vars["id"]
+
+	_, err := db.Exec("DELETE FROM members WHERE id = $1", memberID)
+	if err != nil {
+		writeError(w, http.StatusInternalServerError, "Failed to delete member")
+		return
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
+}
+
+func handleUpdateMemberOrder(w http.ResponseWriter, r *http.Request) {
+	session := getSessionFromRequest(r)
+	if session == nil || !session.IsManager {
+		writeError(w, http.StatusForbidden, "Manager access required")
+		return
+	}
+
+	var input struct {
+		Type  string   `json:"type"` // "active" or "subs"
+		Order []string `json:"order"`
+	}
+
+	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
+		writeError(w, http.StatusBadRequest, "Invalid request body")
+		return
+	}
+
+	// Update sort order for each member
+	for i, id := range input.Order {
+		db.Exec("UPDATE members SET sort_order = $1 WHERE id = $2", i, id)
+	}
+
+	writeJSON(w, http.StatusOK, map[string]bool{"success": true})
 }
 
 // ==================== GAME HANDLERS ====================
@@ -1457,6 +1686,10 @@ func main() {
 	// API routes
 	r.HandleFunc("/api/data", handleGetAllData).Methods("GET")
 	r.HandleFunc("/api/members", handleGetMembers).Methods("GET")
+	r.HandleFunc("/api/members", handleAddMember).Methods("POST")
+	r.HandleFunc("/api/members/{id}", handleUpdateMember).Methods("PUT")
+	r.HandleFunc("/api/members/{id}", handleDeleteMember).Methods("DELETE")
+	r.HandleFunc("/api/members/order", handleUpdateMemberOrder).Methods("PUT")
 	r.HandleFunc("/api/games", handleGetGames).Methods("GET")
 	r.HandleFunc("/api/games", handleCreateGame).Methods("POST")
 	r.HandleFunc("/api/games/{id}", handleDeleteGame).Methods("DELETE")
