@@ -57,7 +57,8 @@
             <button class="tab active" data-tab="calendar">Upcoming Games</button>
             <button class="tab" data-tab="roster">Team Roster</button>
             <button class="tab" data-tab="help">How To Use</button>
-            <button class="tab manager-only" data-tab="manage" style="display: none;">Manage</button>
+            <button class="tab manager-only" data-tab="manage" style="display: none;">Manage Games</button>
+            <button class="tab manager-only" data-tab="clanroster" style="display: none;">Clan Roster</button>
         </nav>
 
         <!-- Calendar Tab -->
@@ -296,47 +297,6 @@
             </div>
 
             <div class="manage-section">
-                <h3>Team Roster Management</h3>
-                <p style="color: var(--text-secondary); margin-bottom: 15px;">
-                    Add, remove, or reorder team members. Drag to reorder.
-                </p>
-
-                <div class="roster-management">
-                    <div class="roster-add-form">
-                        <h4>Add New Member</h4>
-                        <div class="add-member-row">
-                            <input type="text" id="newMemberName" placeholder="Player name">
-                            <select id="newMemberType">
-                                <option value="active">Active</option>
-                                <option value="sub">Substitute</option>
-                            </select>
-                            <select id="newMemberRegion">
-                                <option value="">Region (optional)</option>
-                                <option value="NA">NA</option>
-                                <option value="EU">EU</option>
-                            </select>
-                            <button class="btn btn-primary" onclick="addNewMember()">Add</button>
-                        </div>
-                    </div>
-
-                    <div class="roster-lists">
-                        <div class="roster-list-section">
-                            <h4>Active Members</h4>
-                            <div id="manageActiveRoster" class="sortable-roster">
-                                <!-- Active members will be populated here -->
-                            </div>
-                        </div>
-                        <div class="roster-list-section">
-                            <h4>Substitutes</h4>
-                            <div id="manageSubRoster" class="sortable-roster">
-                                <!-- Subs will be populated here -->
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="manage-section">
                 <h3>Discord Settings</h3>
                 <p style="color: var(--text-secondary); margin-bottom: 10px;">
                     Set up a webhook to post game announcements to your Discord server.
@@ -385,6 +345,55 @@
                     </div>
                 </div>
                 <div id="testResult" class="test-result" style="display: none;"></div>
+            </div>
+        </section>
+
+        <!-- Clan Roster Tab (Manager Only) -->
+        <section id="clanroster" class="tab-content manager-only">
+            <h2>Clan Roster Management</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 20px;">
+                Add, remove, or reorder clan members. Drag to reorder within each section.
+            </p>
+
+            <div class="manage-section">
+                <h3>Add New Member</h3>
+                <div class="roster-add-form">
+                    <div class="add-member-row">
+                        <input type="text" id="newMemberName" placeholder="Player name">
+                        <select id="newMemberType">
+                            <option value="active">Active</option>
+                            <option value="sub">Vet (Retired)</option>
+                        </select>
+                        <select id="newMemberRegion">
+                            <option value="">Region (optional)</option>
+                            <option value="NA">NA</option>
+                            <option value="EU">EU</option>
+                        </select>
+                        <button class="btn btn-primary" onclick="addNewMember()">Add Member</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="clan-roster-sections">
+                <div class="manage-section clan-roster-section">
+                    <h3>Active Members</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 10px; font-size: 0.9rem;">
+                        Current active players who compete regularly
+                    </p>
+                    <div id="manageActiveRoster" class="sortable-roster">
+                        <!-- Active members will be populated here -->
+                    </div>
+                </div>
+
+                <div class="manage-section clan-roster-section vets-management">
+                    <h3>Vets (Retired Members)</h3>
+                    <p style="color: var(--text-secondary); margin-bottom: 10px; font-size: 0.9rem;">
+                        Retired members who sub when needed
+                    </p>
+                    <div id="manageSubRoster" class="sortable-roster">
+                        <!-- Vets will be populated here -->
+                    </div>
+                </div>
             </div>
         </section>
 

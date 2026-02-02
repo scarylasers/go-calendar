@@ -347,6 +347,7 @@ function updateAuthUI() {
     const loginSection = document.getElementById('loginSection');
     const userSection = document.getElementById('userSection');
     const managerTab = document.querySelector('.tab[data-tab="manage"]');
+    const clanRosterTab = document.querySelector('.tab[data-tab="clanroster"]');
     const rosterLoginRequired = document.getElementById('rosterLoginRequired');
     const rosterContent = document.getElementById('rosterContent');
 
@@ -374,7 +375,8 @@ function updateAuthUI() {
 
         userName.textContent = state.user.displayName || state.user.username;
         managerBadge.style.display = state.isManager ? 'inline-block' : 'none';
-        managerTab.style.display = state.isManager ? 'inline-block' : 'none';
+        if (managerTab) managerTab.style.display = state.isManager ? 'inline-block' : 'none';
+        if (clanRosterTab) clanRosterTab.style.display = state.isManager ? 'inline-block' : 'none';
 
         // Show linked player or prompt to link
         const myAccountBtn = document.getElementById('myAccountBtn');
@@ -395,7 +397,8 @@ function updateAuthUI() {
     } else {
         loginSection.style.display = 'flex';
         userSection.style.display = 'none';
-        managerTab.style.display = 'none';
+        if (managerTab) managerTab.style.display = 'none';
+        if (clanRosterTab) clanRosterTab.style.display = 'none';
 
         // Hide roster content for logged-out users
         if (rosterLoginRequired) rosterLoginRequired.style.display = 'block';

@@ -1314,6 +1314,41 @@ body.manager-mode .tab.manager-only {
     }
 }
 
+/* Clan Roster Management */
+.clan-roster-sections {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    margin-top: 20px;
+}
+
+@media (max-width: 900px) {
+    .clan-roster-sections {
+        grid-template-columns: 1fr;
+    }
+}
+
+.clan-roster-section {
+    background: var(--bg-dark);
+    border-radius: 10px;
+    padding: 20px;
+    border: 1px solid var(--border);
+}
+
+.clan-roster-section h3 {
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    margin-bottom: 5px;
+}
+
+.clan-roster-section.vets-management h3 {
+    color: var(--warning);
+}
+
+.clan-roster-section.vets-management {
+    border-color: rgba(255, 170, 0, 0.3);
+}
+
 /* Modals */
 .modal {
     position: fixed;
