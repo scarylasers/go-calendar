@@ -309,10 +309,16 @@ function updateAuthUI() {
     const loginSection = document.getElementById('loginSection');
     const userSection = document.getElementById('userSection');
     const managerTab = document.querySelector('.tab[data-tab="manage"]');
+    const rosterLoginRequired = document.getElementById('rosterLoginRequired');
+    const rosterContent = document.getElementById('rosterContent');
 
     if (state.user) {
         loginSection.style.display = 'none';
         userSection.style.display = 'flex';
+
+        // Show roster content for logged-in users
+        if (rosterLoginRequired) rosterLoginRequired.style.display = 'none';
+        if (rosterContent) rosterContent.style.display = 'block';
 
         // Update user info
         const avatar = document.getElementById('userAvatar');
@@ -349,6 +355,10 @@ function updateAuthUI() {
         loginSection.style.display = 'flex';
         userSection.style.display = 'none';
         managerTab.style.display = 'none';
+
+        // Hide roster content for logged-out users
+        if (rosterLoginRequired) rosterLoginRequired.style.display = 'block';
+        if (rosterContent) rosterContent.style.display = 'none';
     }
 }
 

@@ -754,8 +754,40 @@ body.manager-mode .tab.manager-only {
     box-shadow: 0 5px 20px rgba(88, 101, 242, 0.4);
 }
 
-.btn-discord svg {
+.btn-discord .discord-icon {
+    width: 24px;
+    height: 24px;
     flex-shrink: 0;
+}
+
+.btn-discord span {
+    white-space: nowrap;
+}
+
+/* Login Required Message */
+.login-required-message {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--bg-dark);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.login-required-message .lock-icon {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
+    opacity: 0.6;
+}
+
+.login-required-message h3 {
+    color: var(--cyan);
+    font-family: 'Orbitron', sans-serif;
+    margin-bottom: 10px;
+}
+
+.login-required-message p {
+    color: var(--text-secondary);
+    margin-bottom: 20px;
 }
 
 /* User Info Section */
