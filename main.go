@@ -145,6 +145,13 @@ func initDB() error {
 		return nil
 	}
 
+	// Add search_path to connection string for go_calendar schema
+	if strings.Contains(dbURL, "?") {
+		dbURL += "&search_path=go_calendar"
+	} else {
+		dbURL += "?search_path=go_calendar"
+	}
+
 	var err error
 	db, err = sql.Open("postgres", dbURL)
 	if err != nil {
@@ -155,7 +162,13 @@ func initDB() error {
 		return fmt.Errorf("failed to ping database: %v", err)
 	}
 
-	// Create tables
+	// Create schema for go_calendar to keep tables separate from hopzle
+	_, err = db.Exec(`CREATE SCHEMA IF NOT EXISTS go_calendar`)
+	if err != nil {
+		return fmt.Errorf("failed to create schema: %v", err)
+	}
+
+	// Create tables (will be in go_calendar schema due to search_path)
 	_, err = db.Exec(`
 		CREATE TABLE IF NOT EXISTS games (
 			id TEXT PRIMARY KEY,
@@ -250,7 +263,7 @@ func initDB() error {
 		seedMembers()
 	}
 
-	log.Println("Database initialized successfully")
+	log.Println("Database initialized with go_calendar schema")
 	return nil
 }
 
